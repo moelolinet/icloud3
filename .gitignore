@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments / local test harness
+.venv*/
+venv/
+
+# Test / build scratch
+.pytest_cache/
+htmlcov/
+.coverage
+wheeltest/
+scratch*.py
+cleanup*.py
+rebuild_tools.py

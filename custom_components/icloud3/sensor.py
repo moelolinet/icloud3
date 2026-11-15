@@ -1,0 +1,1796 @@
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#   This module handles all activities related to updating a device's sensors. It contains
+#   the following modules:
+#       TrackFromZones - iCloud3 creates an object for each device/zone
+#           with the tracking data fields.
+#
+#   The primary methods are:
+#       determine_interval - Determines the polling interval, update times,
+#           location data, etc for the device based on the distance from
+#           the zone.
+#       determine_interval_after_error - Determines the interval when the
+#           location data is to be discarded due to poor GPS, it is old or
+#           some other error occurs.
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+from .global_variables  import GlobalVariables as Gb
+from .const             import (DOMAIN, PLATFORM_SENSOR, ICLOUD3,
+                                SENSOR_EVENT_LOG_NAME, SENSOR_ALERTS_NAME, SENSOR_WAZEHIST_TRACK_NAME,
+                                ALERT_CRITICAL, ALERT_OTHER,
+                                HOME, HOME_FNAME, NOT_SET, NOT_SET_FNAME, NONE_FNAME,
+                                BASE, TRACKED, MONITORED, EXCLUDED,
+                                DATETIME_ZERO, HHMMSS_ZERO,
+                                UM_FNAME,
+                                TRACK, MONITOR, INACTIVE,
+                                NAME, FNAME, FROM_ZONE,
+                                ICON,
+                                WAZE_METHOD, WAZE_USED,
+                                FROM_ZONE, )
+from .const_config      import (BADGE, ZONE, ZONE_DISTANCE, ZONE_DISTANCE_M, ZONE_DISTANCE_M_EDGE,
+                                HOME_DISTANCE, BATTERY, BATTERY_STATUS, WAZE_DISTANCE,
+                                WAZE_DISTANCE_ATTR, CALC_DISTANCE, CALC_DISTANCE_ATTR,
+                                CONF_TRACK_FROM_ZONES, CONF_IC3_DEVICENAME, CONF_MODEL,
+                                CONF_RAW_MODEL, CONF_FNAME, CONF_AADEV_NAME,
+                                CONF_MOBILE_APP_DEVICE, CONF_TRACKING_MODE, CONF_SENSORS,
+                                CONF_EXCLUDED_SENSORS, CONF_SENSORS_MONITORED_DEVICES,
+                                CONF_SENSORS_TRACK_FROM_ZONES, CONF_SENSORS_HASH,
+                                DEFAULT_DEVICE_SENSORS_CONF, )
+from .const_char        import (RARROW, NLSP4, BLANK_SENSOR_FIELD, DOT, HDOT, NBSP, RED_ALERT, )
+
+from .i18n             import sensors as i18n_sensors
+from .const_sensor      import (SENSOR_DEFINITION, SENSOR_GROUPS, SENSOR_LIST_DISTANCE,
+                                SENSOR_FNAME, SENSOR_TYPE, SENSOR_ICON,
+                                SENSOR_ATTRS, SENSOR_DEFAULT, SENSOR_LIST_ALWAYS, ICLOUD3_SENSORS,
+                                SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS,
+                                CONF_NON_TRACKING_GROUPS,
+                                )
+
+from .utils.utils       import (instr, is_empty, isnot_empty, round_to_zero, is_number,
+                                list_add, list_del, list_to_str, dict_sort, get_string_hash, apple_user,)
+from .utils.format      import (icon_circle, icon_box,  )
+from .utils.messaging   import (post_event, post_alert, post_greenbar_msg, log_info_msg, log_debug_msg,
+                                log_error_msg,log_exception, log_info_msg_HA, log_exception_HA,
+                                all_alerts_by_alert_key, alert_key_source,
+                                _evlog, _log, )
+from .utils.time_util   import (time_to_12hrtime, time_remove_am_pm, format_timer,
+                                format_mins_timer, format_day_date_time_now, time_now_secs, datetime_now,
+                                secs_to_datetime, secs_to_datetime, datetime_struct_to_secs,
+                                adjust_time_hour_values, adjust_time_hour_value)
+from .utils.dist_util   import (km_to_mi, m_to_ft, m_to_um, set_precision, reformat_um, )
+
+# from .configure_v1         import sensors_cf as config_sensors
+from .startup           import config_file
+from .startup           import start_ic3
+from .utils             import entity_io
+from .utils             import entity_reg_util as er_util
+
+#--------------------------------------------------------------------
+from collections        import OrderedDict
+from homeassistant      import config_entries, core
+from homeassistant.const                import MATCH_ALL
+from homeassistant.components.sensor    import SensorEntity
+from homeassistant.config_entries       import ConfigEntry
+from homeassistant.helpers.entity       import DeviceInfo
+
+from homeassistant.core                 import HomeAssistant
+from homeassistant.helpers.icon         import icon_for_battery_level
+from homeassistant.helpers              import entity_registry as er, device_registry as dr
+
+import homeassistant.util.dt as dt_util
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
+    '''Set up iCloud3 sensors'''
+
+    # Save the hass `add_entities` call object for use in config_flow for adding new sensors
+    Gb.hass = hass
+    Gb.sensor_async_add_entities = async_add_entities
+    Gb.sensors_created_cnt = 0
+
+    if Gb.conf_file_data == {}:
+        start_ic3.initialize_directory_filenames()
+        await config_file.async_load_icloud3_configuration_file()
+
+    try:
+        SensorsToAdd = _create_icloud3_internal_sensors()
+        if SensorsToAdd:
+            Gb.sensor_async_add_entities(SensorsToAdd, True)
+            log_info_msg_HA(f'iCloud3 Sensor Entities: {len(SensorsToAdd)}')
+
+    except Exception as err:
+        log_exception(err)
+        log_msg = (f"►INTERNAL ERROR (UpdtSensorUpdate-{err})")
+        log_error_msg(log_msg)
+
+    if is_empty(Gb.entity_reg_items_by_status):
+        er_util.scan_entity_reg_for_icloud3_items()
+    disabled_devices = er_util.extract_item_from_device_reg_items(
+                                    'disabled', 'entity_id', PLATFORM_SENSOR)
+
+    # Initialize these now so they will be available before the HA Sensors and iC3
+    # Device objects are created. This insures everything can be linked properly
+    # later on.
+    for devicename in Gb.conf_devicenames:
+        if devicename not in Gb.Sensors_by_devicename:
+            Gb.Sensors_by_devicename[devicename]           = {}
+            Gb.Sensors_by_devicename_from_zone[devicename] = {}
+
+#--------------------------------------------------------------------
+def _create_icloud3_internal_sensors():
+    '''
+    Create the sensors for the Event Log, Alerts and Waze Track History
+    '''
+    SensorsToAdd = []
+    if Gb.EvLogSensor is None:
+        Gb.EvLogSensor = Sensor_EventLog(SENSOR_EVENT_LOG_NAME)
+        SensorsToAdd.append(Gb.EvLogSensor)
+
+    if Gb.AlertsSensor is None:
+        Gb.AlertsSensor = Sensor_Alerts(SENSOR_ALERTS_NAME)
+        SensorsToAdd.append(Gb.AlertsSensor)
+
+    if Gb.WazeHistTrackSensor is None:
+        Gb.WazeHistTrackSensor = Sensor_WazeHistTrack(SENSOR_WAZEHIST_TRACK_NAME)
+        SensorsToAdd.append(Gb.WazeHistTrackSensor)
+
+    if SensorsToAdd:
+        ic3_sensors_dict = {f"{SensorToAdd.entity_name.replace('_icloud3', '')}": SensorToAdd
+                                    for SensorToAdd in SensorsToAdd}
+        log_sensors_added_deleted('ADDED', 'icloud3', ic3_sensors_dict)
+
+    return SensorsToAdd
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#   STARTUP - EXTRACT SENSORS LIST FROM CONFIGURATION FILE CONF_DEVICES SENSORS
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+async def async_create_Sensor_objects():
+    '''
+    This is called from __init__ during startup to create all device sensors
+    '''
+
+    try:
+        SensorsToAdd = []
+        device_sensors_list = await create_all_devices_sensors()
+        SensorsToAdd.extend(device_sensors_list)
+
+        # Set the total count of the sensors that will be created
+
+        if Gb.sensors_cnt == 0:
+            excluded_sensors = config_file.get_excluded_sensors()
+            disabled_sensors = config_file.get_disabled_sensors_list()
+            disabled_cnt_msg = '' if is_empty(disabled_sensors) else f", Disabled-{len(disabled_sensors)}"
+            Gb.sensors_cnt = len(SensorsToAdd)
+            post_event( f"Sensor Entities > Created-{len(SensorsToAdd)}, "
+                        f"Excluded-{len(excluded_sensors)}"
+                        f"{disabled_cnt_msg}")
+
+        if SensorsToAdd != []:
+            Gb.sensor_async_add_entities(SensorsToAdd, True)
+            log_info_msg_HA(f'iCloud3 Sensor Entities: {len(SensorsToAdd)}')
+
+        for devicename, sensors in Gb.sensors_added_by_devicename.items():
+            log_sensors_added_deleted('ADDED', devicename)
+
+        correct_sensor_entity_ids_with_2_extension()
+        await config_file.async_write_icloud3_configuration_file()
+
+    except Exception as err:
+        log_exception(err)
+
+#--------------------------------------------------------------------
+async def create_all_devices_sensors():
+    '''
+    Create the sensors for each device being tracked or monitored and
+    the sensors associated with each device
+    '''
+    SensorsToAdd = []
+    try:
+        await config_file.async_build_conf_device_sensors_from_conf_sensors()
+        disabled_sensors = config_file.get_disabled_sensors_list()
+
+        log_msg  = (f"Sensors List > "
+                    f"Tracked-{len(Gb.conf_device_sensors[TRACK])}, "
+                    f"Monitored-{len(Gb.conf_device_sensors[MONITOR])}, "
+                    f"TrackFromZones-{len(Gb.conf_device_sensors[CONF_TRACK_FROM_ZONES])}, "
+                    f"Excluded-{len(Gb.conf_device_sensors[CONF_EXCLUDED_SENSORS])}, "
+                    f"Disabled-{len(disabled_sensors)}")
+        log_info_msg(log_msg)
+
+        if isnot_empty(Gb.conf_device_sensors[CONF_EXCLUDED_SENSORS]):
+            log_info_msg_HA(f'Excluded Sensors: {list_to_str(Gb.conf_device_sensors[CONF_EXCLUDED_SENSORS])}')
+
+        for conf_device in Gb.conf_devices:
+            devicename = conf_device[CONF_IC3_DEVICENAME]
+
+            # Do not recreate the sensors of a device the user disabled on the Integrations
+            # screen. Adding them back puts them in the entity registry with
+            # disabled_by=device, which the entity registry handler then has to clean up.
+            if (devicename in Gb.ha_disabled_by_by_devicename
+                    or conf_device[CONF_TRACKING_MODE] == INACTIVE):
+                continue
+
+            try:
+                DeviceSensors = create_device_Sensor_objects(devicename, conf_device, disabled_sensors)
+
+                if DeviceSensors:
+                    SensorsToAdd.extend(DeviceSensors)
+
+            except Exception as err:
+                log_info_msg(f"Error creating sensors for {devicename}")
+                log_exception(err)
+
+    except Exception as err:
+        log_exception(err)
+
+    return SensorsToAdd
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#   SENSOR HANDLER
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def create_device_Sensor_objects(devicename, conf_device, disabled_sensors):
+    '''
+    The configuration file contains the base and from_zone sensor entity names for each device.
+    Create the sensor using this value. Keep track of added and removed sensors when the list
+    is being updated by Configure > Sensors screen.  Sensors are  only added when starting up.
+    '''
+    DeviceSensors = []
+    if devicename not in Gb.Sensors_by_devicename:
+        Gb.Sensors_by_devicename[devicename]           = {}
+        Gb.Sensors_by_devicename_from_zone[devicename] = {}
+
+    Device = Gb.Devices_by_devicename.get(devicename)
+
+    try:
+        tracked_or_monitored = conf_device[CONF_TRACKING_MODE]
+        for sensor in Gb.conf_device_sensors[tracked_or_monitored]:
+            devicename_sensor = f'{devicename}_{sensor}'
+            if (devicename_sensor in Gb.conf_device_sensors[CONF_EXCLUDED_SENSORS]
+                or (Device and sensor in Device.Sensors)
+                or devicename_sensor in disabled_sensors):
+                continue
+
+            check_disabled_but_not_excluded(devicename_sensor, sensor)
+
+            Sensor = _create_sensor_by_type(devicename, sensor, conf_device)
+
+            if Sensor:
+                Gb.Sensors_by_devicename_sensor[devicename_sensor] = Sensor
+                Gb.Sensors_by_devicename[devicename][sensor]       = Sensor
+                DeviceSensors.append(Sensor)
+
+        # Set up device track_from_zones sensors
+        if conf_device[CONF_TRACK_FROM_ZONES] == [HOME]:
+            from_zones = []
+        else:
+            from_zones = conf_device[CONF_TRACK_FROM_ZONES]
+
+        for from_zone in from_zones:
+            for sensor in Gb.conf_device_sensors[CONF_TRACK_FROM_ZONES]:
+                sensor_from_zone = f"{sensor}_{from_zone}"
+                Device = Gb.Devices_by_devicename.get(devicename)
+                if Device:
+                    if sensor_from_zone in Device.Sensors_from_zone:
+                        continue
+
+                Sensor = _create_sensor_by_type(devicename, sensor, conf_device, from_zone)
+
+                if Sensor:
+                    Gb.Sensors_by_devicename_sensor[f"{devicename}_{sensor_from_zone}"] = Sensor
+                    Gb.Sensors_by_devicename_from_zone[devicename][sensor_from_zone]    = Sensor
+                    DeviceSensors.append(Sensor)
+
+        return DeviceSensors
+
+    except Exception as err:
+        log_exception(err)
+        return []
+
+#................................................................................
+def check_disabled_but_not_excluded(devicename, sensor):
+    if ('disabled' not in Gb.entity_reg_items_by_status
+            or devicename not in Gb.entity_reg_items_by_status['disabled']
+            or sensor not in  Gb.entity_reg_items_by_status['disabled'][devicename]):
+        return False
+
+    try:
+        er_util.enable_disabled_entity(f"{devicename}_{sensor}")
+        return True
+
+    except Exception as err:
+        log_exception(err)
+
+        return False
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#   EXTRACT SENSOR INFO FROM CONFIGURATION FILE, BUILD SENSOR_BY_DEVICENAME
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def total_sensors_cnt():
+    '''
+    Cycle through the conf_device_sensors and get the total number of
+    sensors that will be created
+    '''
+    sensors_cnt = 0
+
+    try:
+        track_cnt   = len(Gb.conf_device_sensors[TRACK])
+        monitor_cnt = len(Gb.conf_device_sensors[MONITOR])
+        tfz_cnt     = len(Gb.conf_device_sensors[CONF_TRACK_FROM_ZONES])
+        exclude_cnt = len(Gb.conf_device_sensors[CONF_EXCLUDED_SENSORS])
+        if Gb.conf_devices:
+            for conf_device in Gb.conf_devices:
+                if conf_device[CONF_TRACKING_MODE] == TRACK:
+                    sensors_cnt += track_cnt
+                elif conf_device[CONF_TRACKING_MODE] == MONITOR:
+                    sensors_cnt += monitor_cnt
+                if len(conf_device[CONF_TRACK_FROM_ZONES]) > 1:
+                    sensors_cnt += tfz_cnt * len(conf_device[CONF_TRACK_FROM_ZONES])
+        sensors_cnt -= exclude_cnt
+
+    except:
+        pass
+
+    return sensors_cnt
+
+
+#....................................................................
+def log_sensors_added_deleted(activity, devicename, sensors_list=None):
+    '''
+    Add an item to the log file showing the sensors that were added or removed during startup or
+    in config_flow when updating a devices parameters.
+
+    Parameters:
+        - activity = 'ADDED', 'REMOVED' or something else
+        - devicename = the devicename for the sensors
+        - sensors_list = a list of the sensors
+
+    if activity = ADDED, the Gb.sensors_added_by_devicename[devicename] is cleared
+    if activity = REMOVED, the Gb.sensors_removed_by_devicename[devicename] is cleared
+    '''
+    if sensors_list is None:
+        if activity == 'ADDED':
+            devicename_lists = Gb.sensors_added_by_devicename
+        elif activity == 'REMOVED':
+            devicename_lists = Gb.sensors_removed_by_devicename
+        else:
+            return
+        if devicename not in devicename_lists:
+            devicename_lists[devicename] = []
+        sensors_list = devicename_lists[devicename]
+        devicename_lists[devicename] = []
+
+    if is_empty(sensors_list):
+        return
+
+    _sensors = list(sensors_list.keys()) if type(sensors_list) is dict else sensors_list
+    _sensors_msg = {'BaseName': f"sensor.{devicename}_",
+                    'Count': len(sensors_list),
+                    'Entities': list_to_str(_sensors)}
+    log_info_msg(f"SENSORS {activity}: {_sensors_msg}")
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#    CONFIG_FLOW - CREATE SENSORS OBJECTS FROM ON SENSORS UPDATE
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# UNUSED (10/31/2026) - not called anywhere. Commented out, delete after v3.8.0
+# def create_tracked_device_sensors(devicename, conf_device, new_sensors_list=None):
+#     '''
+#     Add icloud3 sensors that have been selected via config_flow and
+#     are in the Gb.conf_sensors for each device
+#     '''
+#     if devicename not in Gb.Sensors_by_devicename:
+#         Gb.Sensors_by_devicename[devicename]           = {}
+#         Gb.Sensors_by_devicename_from_zone[devicename] = {}
+
+#     try:
+#         SensorsToAdd = []
+
+#         if new_sensors_list is None:
+#             new_sensors_list = []
+
+#             for sensor_group, sensor_list in Gb.conf_sensors.items():
+#                 if sensor_group == CONF_EXCLUDED_SENSORS:
+#                     continue
+#                 if sensor_group != 'monitored_devices':
+#                     new_sensors_list.extend(sensor_list)
+
+#         # The sensor group is a group of sensors combined under one conf_sensor item
+#         # Build sensors to be created from the the sensor or the sensor's group
+#         sensors_list_set = set(SENSOR_LIST_ALWAYS)
+#         for sensor in new_sensors_list:
+#             if sensor in SENSOR_GROUPS:
+#                 sensors_list_set.update(SENSOR_GROUPS[sensor])
+#             else:
+#                 sensors_list_set.add(sensor)
+
+#         if 'last_zone' in sensors_list_set:
+#             if 'zone' not in Gb.conf_sensors[ZONE]:   sensors_list_set.discard('last_zone')
+#             if 'zone_name' in Gb.conf_sensors[ZONE]:  sensors_list_set.add('last_zone_name')
+#             if 'zone_fname' in Gb.conf_sensors[ZONE]: sensors_list_set.add('last_zone_fname')
+
+#         SensorsToAdd.extend(_create_device_sensors(devicename, conf_device, sensors_list_set))
+#         SensorsToAdd.extend(_create_track_from_zone_sensors(devicename, conf_device, sensors_list_set))
+
+#         return SensorsToAdd
+
+#     except Exception as err:
+#         log_exception(err)
+#         log_msg = (f"►INTERNAL ERROR (UpdtSensorUpdate-{err})")
+#         log_error_msg(log_msg)
+
+#--------------------------------------------------------------------
+def _create_device_sensors(devicename, conf_device, sensors_list):
+
+    SensorsToAdd = []
+    excluded_sensors   = config_file.get_excluded_sensors()
+
+    # Cycle through the sensor definition names in the list of selected sensors,
+    # Get the Sensor entity name and create the sensor.[ic3_devicename]_[sensor_name] entity
+    # The sensor_def name is the conf_sensor name set up in the Sensor_definition table.
+    # The table contains the actual ha Sensor entity name. That permits support for track-from-zone
+    # suffixes.
+
+    for sensor in sensors_list:
+        if (sensor not in SENSOR_DEFINITION
+                or sensor.startswith('tfz_')):
+            continue
+        if (instr(sensor, BATTERY)
+                and conf_device[CONF_AADEV_NAME] == NONE_FNAME
+                and conf_device[CONF_MOBILE_APP_DEVICE] == NONE_FNAME):
+            continue
+
+        devicename_sensor = f"{devicename}_{sensor}"
+        if devicename_sensor in excluded_sensors:
+            log_info_msg(f"Sensor Entity Excluded (sensor.{devicename_sensor})")
+            continue
+
+        Sensor = _create_sensor_by_type(devicename, sensor, conf_device)
+
+        if Sensor:
+            Gb.Sensors_by_devicename_sensor[devicename_sensor] = Sensor
+            Gb.Sensors_by_devicename[devicename][sensor]       = Sensor
+            SensorsToAdd.append(Sensor)
+
+    return SensorsToAdd
+
+#--------------------------------------------------------------------
+def _create_track_from_zone_sensors(devicename, conf_device, sensors_list):
+
+    if conf_device[CONF_TRACK_FROM_ZONES] == [HOME]:
+        return []
+
+    ha_zones, zone_entity_data   = entity_io.get_entity_registry_data(platform=ZONE)
+    excluded_sensors        = config_file.get_excluded_sensors()
+
+    SensorsToAdd = []
+
+    for sensor in sensors_list:
+        if (sensor not in SENSOR_DEFINITION
+                or sensor.startswith('tfz_') is False):
+            continue
+
+        sensor = sensor.replace('tfz_', '')
+
+        # Track_from_zone related sensors
+        if (conf_device[CONF_TRACK_FROM_ZONES] == []
+                    or HOME not in conf_device[CONF_TRACK_FROM_ZONES]):
+                conf_device[CONF_TRACK_FROM_ZONES].append(HOME)
+
+        for from_zone in conf_device[CONF_TRACK_FROM_ZONES]:
+            if from_zone not in ha_zones:
+                continue
+
+            Sensor = None
+            sensor_from_zone = f"{sensor}_{from_zone}"
+            devicename_sensor_zone = f"{devicename}_{sensor}_{from_zone}"
+
+            if devicename_sensor_zone in excluded_sensors:
+                log_info_msg(f"Sensor Entity Excluded (sensor.{devicename_sensor_zone})")
+                continue
+
+            Sensor = _create_sensor_by_type(devicename, sensor, conf_device, from_zone)
+
+            if Sensor:
+                Gb.Sensors_by_devicename_sensor[devicename_sensor_zone]          = Sensor
+                Gb.Sensors_by_devicename_from_zone[devicename][sensor_from_zone] = Sensor
+                SensorsToAdd.append(Sensor)
+
+    return SensorsToAdd
+
+#--------------------------------------------------------------------
+# UNUSED (10/31/2026) - not called anywhere. Commented out, delete after v3.8.0
+# def create_monitored_device_sensors(devicename, conf_device, new_sensors_list=None):
+#     '''
+#         Add icloud3 sensors that have been selected via config_flow and
+#         arein the Gb.conf_sensors for each device
+#     '''
+
+#     try:
+#         excluded_sensors = config_file.get_excluded_sensors()
+#         SensorsToAdd = []
+#         if new_sensors_list is None:
+#             new_sensors_list = []
+#             new_sensors_list.extend(Gb.conf_sensors['monitored_devices'])
+
+#         # The sensor group is a group of sensors combined under one conf_sensor item
+#         # Build sensors to be created from the the sensor or the sensor's group
+#         sensors_list_set = set(SENSOR_LIST_ALWAYS)
+#         for sensor in new_sensors_list:
+#             if sensor in SENSOR_GROUPS:
+#                 sensors_list_set.update(SENSOR_GROUPS[sensor])
+#             else:
+#                 sensors_list_set.add(sensor)
+
+#         # Cycle through the sensor definition names in the list of selected sensors,
+#         # Get the Sensor entity name and create the sensor.[ic3_devicename]_[sensor_name] entity
+#         # The sensor_def name is the conf_sensor name set up in the Sensor_definition table.
+#         # The table contains the actual ha Sensor entity name. That permits support for track-from-zone
+#         # suffixes.
+
+#         for sensor in sensors_list_set:
+#             Sensor = None
+
+#             devicename_sensor = f"{devicename}_{sensor}"
+#             if devicename_sensor in excluded_sensors:
+#                 log_info_msg(f"Sensor Entity Excluded (sensor.{devicename_sensor})")
+#                 continue
+
+#             Sensor = _create_sensor_by_type(devicename, sensor, conf_device)
+
+#             if Sensor:
+#                 Gb.Sensors_by_devicename_sensor[devicename_sensor] = Sensor
+#                 Gb.Sensors_by_devicename[devicename][sensor]       = Sensor
+#                 SensorsToAdd.append(Sensor)
+
+#         return SensorsToAdd
+
+#     except Exception as err:
+#         log_exception(err)
+#         log_msg = (f"►INTERNAL ERROR (UpdtSensorUpdate-{err})")
+#         log_error_msg(log_msg)
+
+#--------------------------------------------------------------------
+# UNUSED (10/31/2026) - not called anywhere. Commented out, delete after v3.8.0
+# def _strip_sensor_def_table_item_prefix(sensor):
+#     '''
+#     Remove the prefix for sensor names in the sensor definition table for
+#     the 'track_from_zone (tfz_)  and 'monitor_device` (md_) sensors.
+#     '''
+#     return sensor.replace('tfz_', '').replace('md_', '')
+
+#--------------------------------------------------------------------
+def  _create_sensor_by_type(devicename, sensor, conf_device, from_zone=None):
+    '''
+    Create the Sensor object based on the type of sensor
+
+    Return:
+        Sensor Object
+    '''
+    if sensor not in SENSOR_DEFINITION:
+        return None
+
+    sensor_type = SENSOR_DEFINITION[sensor][SENSOR_TYPE]
+    if sensor_type.startswith('battery'):
+        return Sensor_Battery(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('text'):
+        return Sensor_Text(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('timestamp'):
+        return Sensor_Timestamp(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('timer'):
+        return Sensor_Timer(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('distance'):
+        return Sensor_Distance(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('zone_info'):
+        return Sensor_ZoneInfo(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('zone'):
+        return Sensor_Zone(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('info'):
+        return Sensor_Info(sensor, devicename, conf_device, from_zone)
+    elif sensor_type.startswith('badge'):
+        return Sensor_Badge(sensor, devicename, conf_device, from_zone)
+    else:
+        log_error_msg(f"iCloud3 Sensor Setup Error, Sensor-{sensor} > Invalid Sensor Type-{sensor_type}")
+        return None
+
+#--------------------------------------------------------------------
+def correct_sensor_entity_ids_with_2_extension(verify=None):
+    '''
+    Get the iCloud3 sensor entities and see if any end with _2. If so,
+    remove the non_2 sensor and rename the _2 sensor to it's correct value
+
+    This is called when the sensors are fist loded (here) and in config_flow (Tools)
+
+    Parameters:
+    verify - True --> Return True/False if there are any correctable sensors
+    '''
+    verify = False if verify is None else True
+
+    # Get all iCloud sensors in hass.states
+    entity_ids = entity_io.get_states_entity_ids()
+    if is_empty(entity_ids):
+        return False
+
+    # Keep sensors that have an HA-added numeric extension (sensor.……_distance_2). A zone
+    # name can also end in '_x' or '_2' (zone.terminal_x), so skip ids iCloud3 expects.
+    entity_ids = [entity_id for entity_id in entity_ids
+                            if er_util.is_sensor_entity_id_suffix_error(entity_id)]
+
+    if is_empty(entity_ids):
+        return True
+
+    log_info_msg(  f"Sensor Entity Errors > Found {len(entity_ids)} Entities with '_2' Suffix. "
+                    f"Correct on `Configure > Tools > Cleanup Entity Registry`")
+    if verify:
+        return True
+
+    # remove sensor.……_distance and change name sensor.……_distance_2 to sensor.……_distance
+    for entity_id in entity_ids:
+        entity_id_base = entity_id[:-2]
+        extn = entity_id.replace(entity_id_base, '')
+
+        # Ex.: Remove sensor.gary_iphone_home_distance
+        if er_util.free_entity_id(entity_id_base) is False:
+            continue
+
+        log_info_msg(f"Sensor entity, Named:  {entity_id_base}, (×{extn})")
+        # Ex.: Change sensor.gary_iphone_home_distance_2 to sensor.gary_iphone_home_distance
+        entity_io.change_entity_id(entity_id, entity_id_base)
+
+    return True
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#       CONFIGURE ICLOUD3 SENSORS
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class DeviceSensor_Base():
+    ''' iCloud base device sensor '''
+
+    _unrecorded_attributes = frozenset({MATCH_ALL})
+
+    def __init__(self, sensor_base, devicename, conf_device, from_zone=None):
+        try:
+            self.hass           = Gb.hass
+            self.sensor_base    = sensor_base
+            self.devicename     = devicename
+            self.conf_device    = conf_device
+            self.device_sensor  = True
+            self.icloud3_sensor = False
+            self.sensor_number  = 0
+
+            self.ha_device_id        = Gb.ha_device_id_x_devicename.get(ICLOUD3)
+            self.ha_entity_id        = None
+            self.ha_disabled_by      = None
+
+            self._attr_force_update = True
+            self._unsub_dispatcher  = None
+
+            # Note: `after_removal_cleanup` is registered in `async_added_to_hass` with
+            # `self.async_on_remove()`. It can not be registered here - HA drains the
+            # `_on_remove` list on every removal, so a callback added once in __init__
+            # is a one-shot that disappears after the first remove/re-add cycle (which
+            # is what an entity_id rename does).
+
+
+            self.from_zone           = from_zone
+            if from_zone:
+                self.from_zone_fname = f" ({from_zone.title().replace('_', '').replace(' ', '')})"
+                self.sensor          = f"{sensor_base}_{from_zone}"
+            else:
+                self.from_zone_fname = ''
+                self.sensor          = sensor_base
+
+            # entity_id is changed by ha to the name actually assigned. It will have
+            #  a '_2' added to it if it is already in the  entity registry
+
+            self._attr_unique_id     = f"{DOMAIN}_{devicename}_{self.sensor}"
+            self.entity_name         = f"{devicename}_{self.sensor}"
+            self.entity_id_base      = f"{PLATFORM_SENSOR}.{self.entity_name}"
+            self.entity_id           = f"{PLATFORM_SENSOR}.{self.entity_name}"
+
+            self.Device              = Gb.Devices_by_devicename.get(devicename)
+            if self.Device and from_zone:
+                self.FromZone        = self.Device.FromZones_by_zone.get(from_zone)
+            else:
+                self.FromZone        = None
+
+            self.sensor_type     = self._get_sensor_definition(sensor_base, SENSOR_TYPE).replace(' ', '')
+            self.sensor_empty    = self._get_sensor_definition(sensor_base, SENSOR_DEFAULT)
+            self.sensor_fname    = (f"{conf_device[FNAME]} "
+                                    f"{self._get_sensor_definition(sensor_base, SENSOR_FNAME)}"
+                                    f"{self.from_zone_fname}")
+
+            self._attr_native_unit_of_measurement = None
+
+            self._state = self._get_restore_or_default_value(sensor_base)
+            self.current_state_value = ''
+
+            Gb.sensors_created_cnt += 1
+            self.sensor_number = Gb.sensors_created_cnt
+
+            # log_info_msg(f"Sensor entity, Config: {self.entity_id}, #{self.sensor_number}")
+
+        except Exception as err:
+            log_exception(err)
+            log_msg = (f"►INTERNAL ERROR (UpdtSensorUpdate-{err})")
+            log_error_msg(log_msg)
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def unique_id(self):
+        return f"{DOMAIN}_{self.entity_name}"
+
+    @property
+    def name(self):
+        ''' Sensor friendly name (中文显示名，entity_id 不变) '''
+        return i18n_sensors.sensor_name(self.sensor_fname)
+
+    @property
+    def devicename_sensor(self):
+        '''Sensor friendly name.'''
+        return f"{self.entity_id}_{self.sensor}"
+
+    @property
+    def fname_entity_name(self):
+        '''Sensor friendly name (devicename) '''
+        return f"{self.sensor_fname} ({self.entity_name})"
+
+    @property
+    def has_entity_name(self):
+        return False
+
+    @property
+    def icon(self):
+        if self.Device and self.sensor_base in self.Device.sensors_icon:
+            return self.Device.sensors_icon[self.sensor_base]
+
+        return self._get_sensor_definition(self.sensor_base, SENSOR_ICON)
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return information about the device """
+        return DeviceInfo(  identifiers  = {(DOMAIN, self.devicename)},
+                            manufacturer = "Apple",
+                            model        = self.conf_device[CONF_RAW_MODEL],
+                            name         = f"{self.conf_device[CONF_FNAME]}",
+                        )
+                            # name         = f"{self.conf_device[CONF_FNAME]} ({self.devicename})",
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def sensor_value(self):
+        return self._get_sensor_value(self.sensor)
+
+#-------------------------------------------------------------------------------------------
+    def _get_extra_attributes(self, sensor):
+        '''
+        Get the extra attributes for the sensor defined in the
+        SENSOR_DEFINITION dictionary
+        '''
+        extra_attrs = OrderedDict()
+        extra_attrs['integration'] = ICLOUD3
+
+        # update_time = secs_to_datetime(time_now_secs())
+        update_time = format_day_date_time_now()
+        if self.Device and self.Device.away_time_zone_offset != 0:
+            update_time = adjust_time_hour_values(update_time, self.Device.away_time_zone_offset)
+        extra_attrs['sensor_updated'] = update_time
+
+        for _sensor in self._get_sensor_definition(sensor, SENSOR_ATTRS):
+            _sensor_attr_name = _sensor.replace('_date/time', '')
+            _sensor_value = self._get_sensor_value(_sensor)
+
+            try:
+                _sensor_value = set_precision(_sensor_value)
+                if _sensor_attr_name == CALC_DISTANCE and _sensor_value < 1:
+                    _sensor_value = f"{_sensor_value:.4f}"
+            except:
+                pass
+
+            if _sensor_attr_name == WAZE_DISTANCE:
+                _sensor_attr_name = WAZE_DISTANCE_ATTR
+                if self._get_sensor_value(WAZE_METHOD) != WAZE_USED:
+                    _sensor_value = self._get_sensor_value(WAZE_METHOD)
+            elif _sensor_attr_name == CALC_DISTANCE:
+                _sensor_attr_name = CALC_DISTANCE_ATTR
+
+            if _sensor_attr_name == ZONE_DISTANCE_M_EDGE:
+                extra_attrs[_sensor_attr_name] = _sensor_value
+
+                if Gb.um_MI:
+                    zone_dist_m = self._get_sensor_value(ZONE_DISTANCE_M)
+                    if is_number(zone_dist_m):
+                        sensor_value_mi = zone_dist_m*Gb.um_km_mi_factor/1000
+                        extra_attrs['distance (miles)'] = set_precision(sensor_value_mi)
+                        extra_attrs['distance_units (attributes)'] = 'mi'
+
+            if self.Device and self.Device.away_time_zone_offset != 0:
+                _sensor_value = adjust_time_hour_values(_sensor_value, self.Device.away_time_zone_offset)
+
+            extra_attrs[_sensor_attr_name] = _sensor_value
+
+        return extra_attrs
+
+#-------------------------------------------------------------------------------------------
+    def _get_sensor_definition(self, sensor, field):
+        try:
+            sensor = sensor.replace(f"_{self.from_zone}", '')
+            return SENSOR_DEFINITION[sensor][field]
+
+        except:
+            if field == SENSOR_ATTRS:
+                return []
+            else:
+                return ''
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def sensor_not_set(self):
+        sensor_value = self._get_sensor_value(self.sensor)
+
+        if self.Device is None:
+            return True
+
+        if (type(sensor_value) is str
+                and (sensor_value.startswith(BLANK_SENSOR_FIELD)
+                    or sensor_value.strip() == ''
+                    or sensor_value == HHMMSS_ZERO
+                    or sensor_value == DATETIME_ZERO
+                    or sensor_value == NOT_SET
+                    or sensor_value == NOT_SET_FNAME)):
+            return True
+        else:
+            return False
+
+#-------------------------------------------------------------------------------------------
+    def _get_sensor_value(self, sensor):
+        '''
+        Get the sensor value from:
+            - Device's attributes/sensor
+            - Device's DeviceFmZone attributes/sensors for a zone
+        '''
+
+        if self.from_zone:
+            return self._get_tfz_sensor_value(sensor)
+        else:
+            return self._get_device_sensor_value(sensor)
+
+#-------------------------------------------------------------------------------------------
+    def _get_device_sensor_value(self, sensor):
+        '''']
+        Get the sensor value from:
+            - Device's attributes/sensor
+            - Device's DeviceFmZone attributes/sensors for a zone
+        '''
+
+        try:
+            if self.Device is None:
+                return self._get_restore_or_default_value(sensor)
+
+            sensor_value = self.Device.sensors.get(sensor, None)
+
+            if (sensor_value is None
+                    or sensor_value == NOT_SET
+                    or type(sensor_value) is str
+                        and (sensor_value.strip() == '')):
+
+                return self._get_restore_or_default_value(sensor)
+
+            return sensor_value
+
+        except Exception as err:
+            log_exception(err)
+
+        return self._get_restore_or_default_value(sensor)
+
+#-------------------------------------------------------------------------------------------
+    def _get_restore_or_default_value(self, sensor):
+        '''
+        Get a default value that is used when iCloud3 has not started, the Device for the
+        sensor has not veen created or the type is text and the value is ''.
+        '''
+        try:
+            if self.from_zone:
+                tfz_sensor   = sensor.replace(f"_{self.from_zone}", "")
+                sensor_value = Gb.restore_state_devices[self.devicename]['from_zone'][self.from_zone][tfz_sensor]
+            else:
+                sensor_value = Gb.restore_state_devices[self.devicename]['sensors'][sensor]
+        except Exception as err:
+            # log_exception(err)
+            sensor_value = self._get_sensor_definition(sensor, SENSOR_DEFAULT)
+
+        return sensor_value
+
+#-------------------------------------------------------------------------------------------
+    def _get_tfz_sensor_value(self, sensor):
+        '''
+        Get the sensor value from:
+            - Device's DeviceFmZone attributes/sensors for a zone
+        '''
+        try:
+            if (self.Device is None
+                    or self.FromZone is None):
+                return self._get_restore_or_default_value(sensor)
+
+            # Strip off zone to get the actual tfz dictionary item
+            tfz_sensor   = sensor.replace(f"_{self.from_zone}", "")
+            sensor_value = self.FromZone.sensors.get(tfz_sensor, None)
+
+            if (sensor_value is None
+                    or sensor_value == NOT_SET
+                    or (type(sensor_value) is str and sensor_value.strip() == '')):
+                return self._get_restore_or_default_value(sensor)
+
+            return sensor_value
+
+        except Exception as err:
+            log_exception(err)
+
+        return self._get_restore_or_default_value(sensor)
+
+#-------------------------------------------------------------------------------------------
+    def _get_sensor_value_um(self, sensor, value_and_um=True):
+        '''
+            Get the sensor value and determine if it has a value and unit_of_measurement.
+
+            Return:
+                um specified:
+                    [sensor_value, um]
+                um not specified (value only):
+                    [sensor_value, None]
+        '''
+        sensor_value = self._get_sensor_value(sensor)
+
+        try:
+            if instr(sensor_value, ' '):
+                value_um_parts = sensor_value.split(' ')
+                return float(value_um_parts[0]), (self._get_sensor_um(sensor) or value_um_parts[1])
+
+            elif self.sensor_not_set:
+                return sensor_value, None
+
+            else:
+                return float(sensor_value), None
+
+        except ValueError:
+            return sensor_value, None
+
+        except Exception as err:
+            log_exception(err)
+            return sensor_value, None
+
+#-------------------------------------------------------------------------------------------
+    def _get_sensor_um(self, sensor):
+        '''
+        Get the sensor's special um override value from:
+            - Device's sensors_um dictionary
+            - Device's DeviceFmZone sensors_um dictionary for a zone
+        '''
+
+        return None
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def should_poll(self):
+        ''' Do not poll to update the sensor '''
+        return False
+
+#-------------------------------------------------------------------------------------------
+    def update_entity_attribute(self, new_fname=None):
+        """ Update entity definition attributes """
+
+        if new_fname is None:
+            return
+
+        self.sensor_fname =(f"{new_fname} "
+                            f"{self._get_sensor_definition(self.sensor, SENSOR_FNAME)}"
+                            f"{self.from_zone_fname}")
+
+        log_info_msg(f"Sensor Entity Changed ({self.entity_id}), {self.sensor_fname}")
+
+        kwargs = {}
+        kwargs['original_name'] = self.sensor_fname
+        kwargs['disabled_by']   = None
+
+        # entity_registry = er.async_get(Gb.hass)
+        # entity_registry.async_update_entity(self.entity_id, **kwargs)
+        try:
+            entity_io.update_entity(self.entity_id, **kwargs)
+        except Exception as err:
+            # log_exception(err)
+            pass
+
+        """
+            Typically used:
+                name: str | None | UndefinedType = UNDEFINED,
+                new_entity_id: str | UndefinedType = UNDEFINED,
+                device_id: str | None | UndefinedType = UNDEFINED,
+                original_name: str | None | UndefinedType = UNDEFINED,
+                config_entry_id: str | None | UndefinedType = UNDEFINED,
+
+            Not used:
+                area_id: str | None | UndefinedType = UNDEFINED,
+                capabilities: Mapping[str, Any] | None | UndefinedType = UNDEFINED,
+                device_class: str | None | UndefinedType = UNDEFINED,
+                disabled_by: RegistryEntryDisabler | None | UndefinedType = UNDEFINED,
+                entity_category: EntityCategory | None | UndefinedType = UNDEFINED,
+                hidden_by: RegistryEntryHider | None | UndefinedType = UNDEFINED,
+                icon: str | None | UndefinedType = UNDEFINED,
+                new_unique_id: str | UndefinedType = UNDEFINED,
+                original_device_class: str | None | UndefinedType = UNDEFINED,
+                original_icon: str | None | UndefinedType = UNDEFINED,
+                supported_features: int | UndefinedType = UNDEFINED,
+                unit_of_measurement: str | None | UndefinedType = UNDEFINED,
+    """
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#       HA ENTITY SUPPORT EXTENSIONS
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # @property
+    # def entity_registry_enabled_default(self) -> bool:
+    #     """Return if entity should be enabled by default."""
+    #     return True
+
+    # async def async_update(self) -> None:
+    #     """Update only if entity is enabled."""
+    #     if not self.enabled:
+    #         return
+
+#-------------------------------------------------------------------------------------------
+    async def async_added_to_hass(self):
+        '''
+        Called by entity helper when after the sensor has been added to the entity registry
+
+        When adding the entity, check to see if the entity_id (what was really added) is the
+        same as entity_id_base (what iC3 wanted to add).
+
+        Note: HA will add an extension (_2) if HA has determined that the entity_id iC3 specified
+        already exists (it is in the hass.states.data tables). If so, remove the iC3 base entity
+        and rename the one HA created (with _2) to the one iC3 entity_id.
+        '''
+
+        self.ha_device_id   = self.registry_entry.device_id
+        self.ha_entity_id   = self.registry_entry.entity_id
+        self.ha_disabled_by = self.registry_entry.disabled_by
+
+        # HA drains the `_on_remove` list on every removal and calls this function again
+        # on every add, so registering here re-arms the callback without duplicating it.
+        self.async_on_remove(self.after_removal_cleanup)
+
+        # Restore the link `after_removal_cleanup` clears. An entity_id rename makes HA
+        # remove and re-add this same object, so relinking here makes that cycle
+        # self-healing rather than leaving the Sensor unreachable afterwards.
+        Gb.Sensors_by_devicename_sensor[self.entity_name] = self
+
+        # if self.ha_disabled_by:
+        #     Gb.ha_entity_removed_by_id[self.ha_entity_id] = self.ha_disabled_by
+
+        # elif self.ha_entity_id in Gb.ha_entity_removed_by_id:
+        #     Gb.ha_entity_removed_by_id.pop(self.ha_entity_id, None)
+
+        if self.devicename not in Gb.sensors_added_by_devicename:
+            Gb.sensors_added_by_devicename[self.devicename] = []
+        list_add(Gb.sensors_added_by_devicename[self.devicename], self.sensor)
+
+        if self.entity_id != self.entity_id_base:
+            self.repair_entity_2_suffix()
+
+#..................................................................................
+    def repair_entity_2_suffix(self):
+        '''
+        iCloud3 expects the sensor entity to not have a _2 suffix. HA will add one if
+        it already exists in the entity_registry to prevent duplicates.
+
+        Delete the entity without the suffix, then change the entity_id with the suffix
+        that was creaed to one without the suffix.
+
+        sensor.gary_iphone_home_distance_2 --> sensor.gary_iphone_home_distance
+        '''
+
+        if er_util.free_entity_id(self.entity_id_base) is False:
+            return
+
+        extn = self.entity_id.replace(self.entity_id_base, '')
+
+        entity_io.change_entity_id(self.entity_id, self.entity_id_base)
+
+        log_info_msg(f"Sensor Entity Renamed  ({self.entity_id_base}), Repaired (×{extn})")
+
+#-------------------------------------------------------------------------------------------
+    async def async_will_remove_from_hass(self):
+        '''
+        Called by entity helper when before the sensor has been removed from the entity registry
+        '''
+
+        if self._unsub_dispatcher:
+            for unsub_dispatcher in self._unsub_dispatcher:
+                unsub_dispatcher()
+
+#-------------------------------------------------------------------------------------------
+    def after_removal_cleanup(self):
+        """
+        Unlink the Sensor from the iCloud3 dicts when HA removes the entity.
+
+        Registered with `self.async_on_remove()` in `async_added_to_hass`.
+
+        HA calls this for EVERY removal - config entry unload, reload, HA shutdown, the
+        entity being disabled, the device being disabled, and the remove/re-add cycle
+        that an entity_id rename performs. It carries no information about who initiated
+        the removal, so it must never try to infer user intent.
+
+        A sensor disabled by the user on the HA Devices & Services > Integrations screen
+        is identified by `disabled_by` in er_util.async_handle_update_entity_registry,
+        which is where it is added to the conf_sensors excluded_sensors list.
+
+        The link cleared here is restored by `async_added_to_hass` when HA adds the
+        entity back, so an entity_id rename is self-healing.
+        """
+
+        Gb.Sensors_by_devicename_sensor.pop(self.entity_name, None)
+
+#-------------------------------------------------------------------------------------------
+    def write_ha_sensor_state(self):
+        """Update the entity's state if the state value has changed."""
+
+        try:
+            if self.hass is None: self.hass = Gb.hass
+            if self.enabled is False:
+                return
+
+            self.schedule_update_ha_state(force_refresh=True)
+
+        except Exception as err:
+            log_exception(err)
+
+#-------------------------------------------------------------------------------------------
+    def __repr__(self):
+            return self.entity_name
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Badge(DeviceSensor_Base, SensorEntity):
+    '''  Sensor for displaying the device badge items '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['badge'])
+
+    @property
+    def native_value(self):
+        return  str(self._get_sensor_value(BADGE))
+
+    @property
+    def extra_state_attributes(self):
+        if self.Device:
+            badge_attrs = self.Device.sensor_badge_attrs.copy()
+            badge_attrs.update(self._get_extra_attributes(self.sensor))
+            return badge_attrs
+        else:
+            return None
+
+    @property
+    def icon(self):
+        return self._get_sensor_value(ICON)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_ZoneInfo(DeviceSensor_Base, SensorEntity):
+    '''  Sensor for displaying the device zone time/distance items '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS[ZONE])
+
+    @property
+    def native_value(self):
+        return  self._get_sensor_value(FROM_ZONE).title()
+
+    @property
+    def icon(self):
+        return icon_box(self.native_value)
+
+    @property
+    def extra_state_attributes(self):
+        return self._get_extra_attributes(self.sensor)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Text(DeviceSensor_Base, SensorEntity):
+    '''  Sensor for handling text items '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['text'])
+
+    @property
+    def native_value(self):
+        sensor_value = self._get_sensor_value(self.sensor)
+
+        if instr(self.sensor_type, 'time'):
+            if instr(sensor_value, ' '):
+                text_um_parts = sensor_value.split(' ')
+                sensor_value = text_um_parts[0]
+                self._attr_unit_of_measurement = text_um_parts[1]
+            else:
+                self._attr_unit_of_measurement = None
+
+        # Set to space if empty
+        if sensor_value.strip() == '':
+            sensor_value = self.sensor_empty        #BLANK_SENSOR_FIELD
+
+        if self.Device and self.Device.away_time_zone_offset != 0:
+            sensor_value = adjust_time_hour_values(sensor_value, self.Device.away_time_zone_offset)
+
+        return sensor_value
+
+    @property
+    def extra_state_attributes(self):
+        return self._get_extra_attributes(self.sensor)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Info(DeviceSensor_Base, SensorEntity):
+    '''
+        Sensor for handling info sensor messages.
+            This will update a specific Device's info sensor using the
+            Device.update_info_message('msg') function.
+    '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['text'])
+
+    @property
+    def native_value(self):
+        self._attr_unit_of_measurement = None
+        sensor_value = self._get_sensor_value(self.sensor)
+
+        if self.sensor_not_set:
+            return f"** Starting iCloud3 v{Gb.version} **"
+
+        else:
+            if self.Device and self.Device.away_time_zone_offset != 0:
+                sensor_value = adjust_time_hour_values(sensor_value, self.Device.away_time_zone_offset)
+            return sensor_value
+
+    @property
+    def extra_state_attributes(self):
+        return self._get_extra_attributes(self.sensor)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Timestamp(DeviceSensor_Base, SensorEntity):
+    '''
+    Sensor for handling timestamp (mm/dd/yy hh:mm:ss) items
+    Sensors: last_update_time, next_update_time, last_located
+    '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['timestamp'])
+
+    @property
+    def native_value(self):
+        sensor_value = self._get_sensor_value(self.sensor)
+        state_value=sensor_value
+
+        sensor_value = time_to_12hrtime(sensor_value)
+        state_value_12=sensor_value
+
+        if self.Device and self.Device.away_time_zone_offset != 0:
+            sensor_value = adjust_time_hour_value(sensor_value, self.Device.away_time_zone_offset)
+        state_value_adj=sensor_value
+        try:
+            # Drop the 'a' or 'p' so the field will fit on an iPhone
+            if int(sensor_value.split(':')[0]) >= 10:
+                sensor_value = time_remove_am_pm(sensor_value)
+        except:
+            pass
+
+        return sensor_value
+
+    @property
+    def extra_state_attributes(self):
+        return self._get_extra_attributes(self.sensor)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Timer(DeviceSensor_Base, SensorEntity):
+    '''
+    Sensor for handling timer items (30 secs, 1.5 hrs, 30 mins)
+    Sensors: inteval, travel_time, travel_time_mins
+    '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['timer'])
+
+    @property
+    def native_value(self):
+        if instr(self.sensor_type, ','):
+            sensor_type_um = self.sensor_type.split(',')[1]
+        else:
+            sensor_type_um = ''
+
+        sensor_value, unit_of_measurement = self._get_sensor_value_um(self.sensor)
+
+        if sensor_value == 0:
+            self._attr_native_unit_of_measurement = 'min'
+            return 0
+
+        if unit_of_measurement:
+            self._attr_native_unit_of_measurement = unit_of_measurement
+
+        elif sensor_type_um == 'min':
+            time_str = format_mins_timer(sensor_value)
+            if time_str and instr(time_str, 'd') is False:         # Make sure it is not a 4d2h34m12s item
+                time_min_hrs = time_str.split(' ')
+                sensor_value = time_min_hrs[0]
+                self._attr_native_unit_of_measurement = time_min_hrs[1]
+
+        elif sensor_type_um == 'sec':
+            time_str = format_timer(sensor_value)
+            if time_str and instr(time_str, 'd') is False:       # Make sure it is not a 4d2h34m12s item
+                time_secs_min_hrs = time_str.split(' ')
+                sensor_value = time_secs_min_hrs[0]
+                self._attr_native_unit_of_measurement = time_secs_min_hrs[1]
+
+        else:
+            self._attr_native_unit_of_measurement = 'min'
+
+        try:
+            # Try to convert sensor_value to integer. Just return it if it fails.
+            if (sensor_value and sensor_value != BLANK_SENSOR_FIELD):
+                if sensor_value == int(sensor_value):
+                    sensor_value = int(sensor_value)
+        except Exception as err:
+            pass
+
+        return sensor_value
+
+    @property
+    def extra_state_attributes(self):
+        return self._get_extra_attributes(self.sensor)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Distance(DeviceSensor_Base, SensorEntity):
+    '''
+    Sensor for handling timer items (30 secs, 1.5 hrs, 30 mins)
+    Sensors: inteval, travel_time, travel_time_mins
+    '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['distance'])
+
+    @property
+    def native_value(self):
+        if instr(self.sensor_type, ','):
+            sensor_type_um = self.sensor_type.split(',')[1]
+        else:
+            sensor_type_um = ''
+
+
+        sensor_value, unit_of_measurement = self._get_sensor_value_um(self.sensor)
+
+
+        if unit_of_measurement:
+            self._attr_native_unit_of_measurement = unit_of_measurement
+        elif sensor_type_um == 'm-ft':
+            self._attr_native_unit_of_measurement = Gb.um_m_ft
+        elif sensor_type_um == 'km-mi':
+            self._attr_native_unit_of_measurement = Gb.um
+        elif sensor_type_um == 'm':
+            self._attr_native_unit_of_measurement = 'm'
+        else:
+            self._attr_native_unit_of_measurement = Gb.um
+
+        if self._attr_native_unit_of_measurement == 'km':
+            if sensor_value > 20:
+                sensor_value = round(sensor_value, 0)
+            elif sensor_value >= 1:
+                sensor_value = round(sensor_value, 2)
+            elif instr(self.sensor_type, 'm-ft'):
+                sensor_value =  round(sensor_value*1000, 2)
+                self._attr_native_unit_of_measurement = 'm'
+            else:
+                sensor_value =  round(sensor_value, 4)
+
+        elif self._attr_native_unit_of_measurement == 'mi':
+            if sensor_value > 20:
+                sensor_value = round(sensor_value, 1)
+            elif sensor_value > .1:
+                sensor_value = round(sensor_value, 2)
+            elif instr(self.sensor_type, 'm-ft'):
+                sensor_value = round(sensor_value*5280, 2)
+                self._attr_native_unit_of_measurement = 'ft'
+            else:
+                sensor_value = round(sensor_value, 4)
+
+        return sensor_value
+
+#---------------------------------------------------------------
+    @property
+    def extra_state_attributes(self):
+        extra_attrs = self._get_extra_attributes(self.sensor)
+
+        if self.Device and self.sensor in [HOME_DISTANCE, ZONE_DISTANCE]:
+            extra_attrs.update(self._format_zone_distance_extra_attrs())
+            extra_attrs.update(self._format_devices_distance_extra_attrs())
+
+        return extra_attrs
+
+#---------------------------------------------------------------
+    def _format_zone_distance_extra_attrs(self):
+        '''
+        Get the distance to each zone and build the extra_attributes Zone distance items
+        '''
+        zone_dist = {}
+        sorted_zone_dist = {}
+        try:
+            for Zone in Gb.HAZones:
+                if Zone.is_statzone: continue
+                dist = set_precision(self.Device.Distance_km(Zone), Gb.um)
+                zone_dist[f"--{Zone.dname}"] = dist
+
+            for Zone in Gb.HAZones:
+                if Zone.is_statzone: continue
+                dist = set_precision(self.Device.Distance_km(Zone)*1000, Gb.um_m_ft)
+                if dist < 500:
+                    zone_dist[f"={Zone.dname} ({Gb.um_m_ft})"] = dist
+
+            sorted_zone_dist[f"zones (calculated distance) ({Gb.um})"] = f"{secs_to_datetime(time_now_secs())}"
+            sorted_zone_dist.update(dict(sorted(zone_dist.items())))
+
+        except Exception as err:
+            # log_exception(err)
+            pass
+
+        return sorted_zone_dist
+
+#---------------------------------------------------------------
+    def _format_devices_distance_extra_attrs(self):
+        '''
+        Get the distance to each zone and build the extra_attributes Zone distance items.
+        Use distance apart from this device for the distance data.
+        {devicename: [distance_m, gps_accuracy_factor, display_text]}
+        '''
+        fname_dist = {}
+        sorted_fname_dist = {}
+        try:
+            for _devicename, _Device in Gb.Devices_by_devicename.items():
+                if _devicename == self.devicename: continue
+                dist_m = self.Device.other_device_distance(_devicename)
+                fname_dist[f"--{_Device.fname}"] = reformat_um(m_to_um(dist_m))
+
+            for _devicename, _Device in Gb.Devices_by_devicename.items():
+                if _devicename == self.devicename: continue
+                dist_m = self.Device.other_device_distance(_devicename)
+                fname_dist[f"={_Device.fname}"] = set_precision(km_to_mi(dist_m/1000))
+
+            sorted_fname_dist[f"devices (calculated distance) ({Gb.um})"] = \
+                        f"{secs_to_datetime(self.Device.dist_to_other_devices_secs)}"
+            sorted_fname_dist.update(dict(sorted(fname_dist.items())))
+
+        except Exception as err:
+            # log_exception(err)
+            pass
+
+        return sorted_fname_dist
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Battery(DeviceSensor_Base, SensorEntity):
+    '''
+    Sensor for handling battery items (30s)
+    Sensors: battery
+    '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS[BATTERY])
+
+    @property
+    def icon(self):
+        if self.Device:
+            battery_level = self.Device.sensors[BATTERY]
+            charging      = (self.Device.sensors[BATTERY_STATUS].lower() == "charging")
+            return icon_for_battery_level(battery_level, charging)
+
+    @property
+    def native_value(self):
+        self._attr_native_unit_of_measurement = '%'
+        sensor_value =  self._get_sensor_value(self.sensor)
+
+        return sensor_value
+
+    @property
+    def extra_state_attributes(self):
+        extra_attrs = self._get_extra_attributes(self.sensor)
+        extra_attrs.update({'device_class': 'battery', 'state_class': 'measurement'})
+
+        return extra_attrs
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Zone(DeviceSensor_Base, SensorEntity):
+    '''
+    Sensor for handling zone items
+    Sensors:
+        zone, zone_name, zone_fname,
+        last_zone, last_zone_name, last_zone_fname
+
+    zone or last_zone sensor:
+        Attributes = zone_name & zone_fname
+    zone_name, zone_fname, last_zone_name, last_zone_fname:
+        Attributes = zone
+    '''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS[ZONE])
+
+    @property
+    def native_value(self):
+        sensor_value = self._get_sensor_value(f"{self.sensor}")
+
+        return sensor_value
+
+    @property
+    def extra_state_attributes(self):
+        return self._get_extra_attributes(self.sensor)
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class iCloud3Sensor_Base():
+    ''' iCloud Support Sensor Base
+        - Event Log
+        - Waze History Track
+    '''
+
+    # _unrecorded_attributes = frozenset({MATCH_ALL})
+
+    def __init__(self, sensor):
+        '''Initialize the Event Log sensor (icloud3_event_log).'''
+        entity_reg = er.async_get(Gb.hass)
+
+        self.hass            = Gb.hass
+        self.sensor          = sensor
+
+        self.fname           = ICLOUD3_SENSORS[sensor]
+
+        self._device         = DOMAIN
+        self.entity_name     = sensor
+        self.entity_id       = f"{PLATFORM_SENSOR}.{self.entity_name}"
+
+        self.ha_entity_id    = None
+        self.ha_disabled_by  = None
+        self._attr_unique_id = f"{DOMAIN}_{self.entity_name}"
+
+        Gb.sensors_created_cnt += 1
+        self.sensor_number = Gb.sensors_created_cnt
+
+        self._unsub_dispatcher = None
+        self.current_state_value = ''
+
+        eid_assigned = entity_io.get_assigned_sensor_entity(self._attr_unique_id)
+        if eid_assigned and eid_assigned != self.entity_id:
+            extn_added = f"+{eid_assigned.replace(self.entity_id, '')}"
+            extn_alert = f" {RED_ALERT} Added-`{extn_added}`"
+        else:
+            extn_alert = ''
+        # log_info_msg(  f"Sensor entity, Config: {self.entity_id}{extn_alert}, #{self.sensor_number}")
+
+        self.alerts_sensor_extra_attrs = {}
+
+#..........................................................................................
+    @property
+    def name(self):
+        '''Sensor friendly name.'''
+        return self.fname
+
+    @property
+    def unique_id(self):
+        return f"{self.entity_name}"
+
+    @property
+    def device(self):
+        return self.unique_id()
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return information about the device """
+        return DeviceInfo(  identifiers = {(DOMAIN, DOMAIN)},
+                            manufacturer = 'gcobb321',
+                            model        = 'Integration',
+                            name         = 'iCloud3 Integration'
+                        )
+
+    @property
+    def should_poll(self):
+        ''' Do not poll to update the sensor '''
+        return False
+
+#-------------------------------------------------------------------------------------------
+    def _get_extra_attributes(self):
+        '''
+        Get the extra attributes for the sensor defined in the
+        SENSOR_DEFINITION dictionary
+        '''
+        extra_attrs = OrderedDict()
+
+        extra_attrs['integration'] = ICLOUD3
+        extra_attrs['sensor_updated'] = format_day_date_time_now()
+
+        return extra_attrs
+
+#-------------------------------------------------------------------------------------------
+    async def async_added_to_hass(self):
+        pass
+
+        # log_info_msg(f"Sensor entity, Added:  {self.entity_id}, #{self.sensor_number}")
+
+#-------------------------------------------------------------------------------------------
+    def async_update_sensor(self):
+        """Update the entity's state."""
+
+        if (Gb.hass is None
+                or self.enabled is False):
+            return
+
+        try:
+            self.schedule_update_ha_state(force_refresh=True)
+
+        except (RuntimeError, AttributeError):
+            pass
+        except Exception as err:
+            log_exception(err)
+
+#-------------------------------------------------------------------------------------------
+    async def async_will_remove_from_hass(self):
+        '''Clean up after entity before removal.'''
+        try:
+            self._unsub_dispatcher()
+
+        except TypeError:
+            pass
+        except Exception as err:
+            log_exception(err)
+
+#-------------------------------------------------------------------------------------------
+    def __repr__(self):
+        return (f"<iCloud3Sensor: {self.entity_name}>")
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_EventLog(iCloud3Sensor_Base, SensorEntity):
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['event_log'])
+
+    @property
+    def icon(self):
+        return 'mdi:message-text-clock-outline'
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def native_value(self):
+        '''State value - (devicename:time)'''
+        try:
+            if Gb.EvLog is None:
+                return 'Unavailable'
+
+            time_suffix = (f"{dt_util.now().strftime('%a, %m/%d')}, "
+                            f"{dt_util.now().strftime(Gb.um_time_strfmt)}."
+                            f"{dt_util.now().strftime('%f')}")
+
+            return (f"{Gb.EvLog.evlog_sensor_state_value}:{time_suffix}")
+
+        except Exception as err:
+            log_exception(err)
+            return 'Unavailable'
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def extra_state_attributes(self):
+        '''Return default attributes for the iCloud device entity.'''
+        update_time = ( f"{dt_util.now().strftime('%a, %m/%d')}, "
+                        f"{dt_util.now().strftime(Gb.um_time_strfmt)}."
+                        f"{dt_util.now().strftime('%f')}")
+        Gb.EvLog.evlog_attrs['update_time'] = update_time
+
+        if Gb.EvLog:
+            return Gb.EvLog.evlog_attrs
+
+        return {'log_level_debug': '',
+                'filtername': 'Initialize',
+                'update_time': update_time,
+                'popup_message': 'Starting',
+                'names': {'Loading': 'Initializing iCloud3'},
+                'logs': [],
+                'platform': Gb.operating_mode}
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_Alerts(iCloud3Sensor_Base, SensorEntity):
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['alerts'])
+
+    @property
+    def icon(self):
+        return 'mdi:alert-rhombus-outline'
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def native_value(self):
+        '''
+        State value contains the last alert that was posted
+
+        Note: _source of apple acct items will be the filteredapple_user (gee**2**ry@)
+        Convert it back to the real apple account text (geekstergary) for the state and attr value
+        '''
+        # Dispay the first attrs item
+        alerts_by_alert_key = all_alerts_by_alert_key()
+        if is_empty(alerts_by_alert_key):
+            return 'none'
+
+        _alert_key, _msg = next(iter(alerts_by_alert_key.items()))
+        _source = alert_key_source(_alert_key)
+        if instr(_source, '@'):
+            source = apple_user(_source)
+
+        if _source in [ALERT_CRITICAL, ALERT_OTHER]:
+            return f"{_msg} ({_source})"
+
+        # Alerts dict = Alerts + 'updated' + 'message_text'
+        plus_other_msg = '' if len(alerts_by_alert_key) == 1 \
+                            else f" +{len(alerts_by_alert_key)-1} Alerts"
+        _source = Gb.upw_unfilter_items.get(_source, _source)
+
+        return f"{_msg}{plus_other_msg}"
+
+#-------------------------------------------------------------------------------------------
+    @property
+    def extra_state_attributes(self):
+        '''
+        Alerts attributes contain the various types of alerts
+
+        Note: _source of apple acct items will be the filteredapple_user (gee**2**ry@)
+        Convert it back to the real apple account text (geekstergary) for the state and attr value
+        '''
+        if (Gb.is_icloud3_initial_startup
+                or Gb.is_icloud3_startup_inprocess):
+            return
+
+        self.alerts_sensor_extra_attrs['updated'] = format_day_date_time_now()
+
+        return self.alerts_sensor_extra_attrs
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class Sensor_WazeHistTrack(iCloud3Sensor_Base, SensorEntity):
+    '''iCloud Waze History Track GPS Values Sensor.'''
+
+    _unrecorded_attributes = frozenset(SENSOR_TYPE_RECORDER_EXCLUDE_ATTRS['waze_info'])
+
+    @property
+    def icon(self):
+        return 'mdi:map-check-outline'
+
+    @property
+    def native_value(self):
+        '''State value - (latitude, longitude)'''
+        if Gb.WazeHist is None:
+            return 'Not Used'
+
+        return f"{Gb.WazeHist.track_latitude}, {Gb.WazeHist.track_longitude}"
+
+    @property
+    def extra_state_attributes(self):
+        '''Return default attributes for the iCloud device entity.'''
+        if Gb.WazeHist is None:
+            return None
+
+        extra_attrs = self._get_extra_attributes()
+        extra_attrs.update({
+                    'records': Gb.WazeHist.track_recd_cnt,
+                    'latitude': Gb.WazeHist.track_latitude,
+                    'longitude': Gb.WazeHist.track_longitude,
+                    'friendly_name': 'WazeHist'})
+        return extra_attrs
+
+
+#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><

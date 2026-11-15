@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "icloud3"
+version = "3.8.0"
+description = "iCloud3 Apple Device Tracker"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,172 @@
+
+
+from ...global_variables    import GlobalVariables as Gb
+from ...const               import (INACTIVE, )
+from ...const_config        import (CONF_VERSION, CONF_IC3_DEVICENAME, CONF_TRACKING_MODE, )
+
+from ...utils.utils         import (list_to_str, list_add, list_del, isnot_empty,
+                                    dict_value_to_list, )
+from ...utils.messaging     import (_log, log_info_msg, log_exception, log_debug_msg,
+                                    post_event, post_alert, post_greenbar_msg, update_alert_sensor,)
+
+from ...startup             import config_file
+from ..                     import utils_cf
+from ..const_form_lists     import *
+from ..                     import dashboard_builder as dbb
+
+from ...i18n                import display as i18n
+from homeassistant.helpers  import (selector,
+                                    entity_registry as er,
+                                    device_registry as dr,)
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#
+#     GENERAL CONFIG FLOW FORMS
+#
+#       - form_config_option_user
+#       - form_menu
+#       - form_confirm_action
+#       - exit_icloud3_configure
+#       - form_restart_ha
+#       - form_restart_ha_reload_icloud3
+#
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#             USER - INITIAL ADD INTEGRATION
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def form_config_option_user(self):
+
+
+    if (Gb.conf_profile[CONF_VERSION] >=1
+            and (isnot_empty(Gb.conf_apple_accounts)
+                or isnot_empty(Gb.conf_devices))):
+        schema = {
+            vol.Required('reset_tracking', default=False): bool,
+            # vol.Required('reset_general', default=False): bool,
+        }
+    else:
+        schema = {}
+
+    schema.update({
+        vol.Required('continue', default=True): bool
+    })
+
+    return vol.Schema(schema)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#             MENU
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def form_menu(self):
+    exit_action = ''
+    if self.create_device_tracker_sensor_enities_on_exit:
+        exit_action = 'exit_add_dev_trkrs_sensors'
+
+    if self.rebuild_ic3db_dashboards:
+        dbb.load_ic3db_dashboards_from_ha_data(self)
+
+        if isnot_empty(self.ic3db_Dashboards_by_dbname):
+            exit_action = 'exit_update_dashboards'
+
+    if self.menu_page_no == 0:
+        menu_items        = MENU_0_ITEMS.copy()
+        default_menu_item = MENU_0[self.menu_item_selected[0]]
+        actions           = MENU_0_ACTIONS.copy()
+    else:
+        menu_items        = MENU_1_ITEMS.copy()
+        default_menu_item = MENU_1[self.menu_item_selected[1]]
+        actions           = MENU_1_ACTIONS.copy()
+
+    if exit_action:
+        actions['exit'] = MENU_EXIT_ITEMS[exit_action]
+
+    action_items        = list(actions.values())
+
+    if Gb.analytics_enabled is None:
+        action_items.insert(0, MENU_1['analytics'])
+
+    if self.menu_page_no == 0:
+        device_cnt, inactive_device_cnt, inactive_pct = config_file.device_cnts()
+        if (self.apple_id == '' or self.password == ''
+                or len(Gb.conf_apple_accounts) == 0):
+            default_menu_item = MENU_0['apple_accounts']
+
+        elif (self.apple_id and self.password
+                and (device_cnt == 0 or device_cnt == inactive_device_cnt)):
+            default_menu_item = MENU_0['device_list']
+
+    return vol.Schema({
+        vol.Optional("menu_items",
+                    default=default_menu_item):
+                    selector.SelectSelector(selector.SelectSelectorConfig(
+                        options=i18n.option_list(menu_items), mode='list')),
+        vol.Optional("action_items"):
+                    selector.SelectSelector(selector.SelectSelectorConfig(
+                        options=i18n.option_list(action_items), mode='list')),
+                        #options=i18n.option_dict(action_items), mode='list')),
+        })
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#             CONFIRM ACTION
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def form_confirm_action(self, action_items=None):
+    '''
+    confirm_action form uses information in the self.confirm_action{}
+    '''
+
+    try:
+        if action_items is None:
+            actions_list = CONFIRM_ACTIONS.copy()
+            actions_list_default = len(actions_list) - 1    # LAST ITEM
+        else:
+            actions_list = action_items
+            actions_list_default = self.confirm_action.get('action_items_default') or 0
+
+        action_desc = self.confirm_action.get('action_desc') or \
+                    'Do you want to perform the selected action?'
+
+        return vol.Schema({
+            vol.Required('action_desc',
+                    default=action_desc):
+                    selector.SelectSelector(selector.SelectSelectorConfig(
+                        options=i18n.option_list([action_desc]), mode='list')),
+            vol.Required('action_items',
+                    default=actions_list[actions_list_default]):
+                    selector.SelectSelector(selector.SelectSelectorConfig(
+                        options=i18n.option_list(actions_list), mode='list')),
+            })
+    except Exception as err:
+        log_exception(err)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#             EXIT ICLOUD3 CONFIGURE
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# UNUSED (10/31/2026) - not called anywhere. Commented out, delete after v3.8.0
+# def form_exit_icloud3_configure_settings(self):
+#     self.actions_list = EXIT_ICLOUD3_CONFIGURE_SETTINGS.copy()
+
+#     device_cnt, inactive_device_cnt, inactive_pct = config_file.device_cnts()
+#     if inactive_device_cnt == 0:
+#         self.actions_list['review_inactive_devices'].pop()
+#     else:
+#         inactive_devices = [conf_device[CONF_IC3_DEVICENAME]
+#                     for conf_device in Gb.conf_devices
+#                     if conf_device[CONF_TRACKING_MODE] == INACTIVE]
+
+#         # self.actions_list['review_inactive_devices'].replace(
+#         self.actions_list[0] = \
+#             self.actions_list[0].replace(
+#                     '^add-text^', list_to_str(inactive_devices))
+
+#     return vol.Schema({
+#         vol.Required('action_items',
+#                     default=utils_cf.default_action_text('exit')):
+#                     selector.SelectSelector(selector.SelectSelectorConfig(
+#                         options=i18n.option_list(self.actions_list), mode='list')),
+#         })

@@ -1,0 +1,455 @@
+from ..global_variables import GlobalVariables as Gb
+from ..const            import (ICLOUD3, DOMAIN,
+                                NOT_SET, IC3LOG_FILENAME,
+                                EVLOG_ALERT, EVLOG_ERROR, EVLOG_ATTENTION, EVLOG_IC3_STAGE_HDR,
+                                ALERT_CRITICAL, ALERT_APPLE_ACCT, ALERT_DEVICE, ALERT_STARTUP, ALERT_OTHER,
+                                SETTINGS_INTEGRATIONS_MSG, INTEGRATIONS_IC3_CONFIG_MSG,
+                                ICLOUD,
+                                ICLOUD, MOBAPP, DISTANCE_TO_DEVICES, )
+from ..const_config     import (CONF_SENSORS_HASH, CONF_VERSION, ZONE_DISTANCE, CONF_APPLE_ACCT,
+                                CONF_PASSWORD, CONF_LOCATE_ALL, CONF_SERVER_LOCATION, )
+from ..const_char       import (CRLF, CRLF_DOT, CRLF_HDOT, CRLF_LDOT, CRLF_X, CRLF_RED_ALERT, NL,
+                                NL_DOT, LINK, GREEN_ALERT, RED_ALERT, CRLF_CHK, NBSP6, DOT, GEAR_ICON, )
+
+from ..utils.utils      import (instr, is_empty, isnot_empty, yes_no, list_to_str, list_add, list_del,
+                                apple_user, is_running_in_event_loop, get_string_hash, )
+from ..utils.messaging  import (post_event, post_alert, post_error_msg, log_error_msg, update_alert_sensor, alert_key_source, all_alerts_by_alert_key,
+                                post_monitor_msg, post_internal_error, post_greenbar_msg, post_dotted_line,
+                                write_ic3log_recd,
+                                log_debug_msg, log_warning_msg, log_info_msg, log_exception,
+                                _evlog, _log, more_info, format_filename,
+                                write_config_file_to_ic3log,
+                                clear_config_error_repair_issues,
+                                open_ic3log_file, )
+from ..utils.rawdata_logging import (log_data, )
+from ..utils.time_util  import (time_now, time_now_secs, secs_to_time, format_day_date_time_now, )
+
+from ..apple_acct       import apple_acct_support as aas
+from ..apple_acct       import user_auth_code_handler as uach
+from ..mobile_app       import mobapp_interface
+from ..                 import sensor as ic3_sensor
+from ..startup          import config_file
+from ..startup          import restore_state
+from ..startup          import start_ic3
+from ..support          import test_controls as TEST
+from ..support          import marketplace as mp
+from ..tracking         import determine_interval as det_interval
+
+#--------------------------------------------------------------------
+import homeassistant.util.dt as dt_util
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def stage_1_setup_variables():
+
+    Gb.trace_prefix = 'STAGE1'
+    stage_title = f'Stage 1 > Initial Preparations'
+
+    open_ic3log_file()
+
+    log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+
+
+    Gb.EvLog.display_user_message(f'iCloud3 v{Gb.version} > Initializiing')
+
+    try:
+        Gb.EvLog.alert_message          = ''
+        Gb.config_track_devices_change_flag = False
+        Gb.reinitialize_icloud_devices_flag = False     # Set when no devices are tracked and iC3 needs to automatically restart
+        Gb.reinitialize_icloud_devices_cnt  = 0
+
+        config_file.load_icloud3_configuration_file()
+        write_config_file_to_ic3log()
+
+        start_ic3.initialize_global_variables()
+        start_ic3.set_global_variables_from_conf_parameters()
+
+        # Run these setup items on a restart. Do not then when initially starting iC3
+        if Gb.is_icloud3_initial_startup is False:
+            Gb.EvLog.start_logging_startup_events()
+
+        if Gb.ha_config_directory != '/config':
+            post_event(f"Base Config Directory > {CRLF_DOT}{Gb.ha_config_directory}")
+        post_event(f"iCloud3 Directory > {CRLF_DOT}{Gb.icloud3_directory}")
+        post_event(f"iCloud3 Configuration File >{CRLF_DOT}{format_filename(Gb.icloud3_config_filename)}")
+
+        start_ic3.display_platform_operating_mode_msg()
+        start_ic3.check_ic3_event_log_file_version()
+        start_ic3.copy_icloud3_theme_file()
+
+        post_monitor_msg(f"LocationInfo-{Gb.ha_location_info}")
+
+        start_ic3.set_event_recds_max_cnt()
+        start_ic3.define_tracking_control_fields()
+
+        post_event(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+        Gb.EvLog.update_event_log_display("")
+
+        # If the internet_error handler is in test mode, force an internet_error condition
+        if TEST.INTERNET_ERROR:
+            Gb.internet_error = True
+
+    except Exception as err:
+        log_exception(err)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def stage_2_prepare_configuration():
+
+    Gb.trace_prefix = 'STAGE2'
+    stage_title = f'Stage 2 > Prepare Support Services'
+    log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+
+    try:
+        Gb.EvLog.display_user_message(stage_title)
+
+        start_ic3.create_Zones_object()
+        start_ic3.create_Waze_object()
+
+        Gb.WazeHist.load_track_from_zone_table()
+
+    except Exception as err:
+        log_exception(err)
+
+    post_event(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+    Gb.EvLog.update_event_log_display("")
+
+    try:
+        configuration_needed_msg = ''
+        # Default configuration was installed
+        if Gb.conf_profile[CONF_VERSION] == -1:
+            configuration_needed_msg = 'INITIAL INSTALLATION - CONFIGURATION IS REQUIRED'
+
+        elif Gb.conf_profile[CONF_VERSION] == 0:
+            configuration_needed_msg = 'THE INITIAL CONFIGURATION FILE WAS INSTALLED'
+        elif ((is_empty(Gb.conf_apple_accounts) and Gb.conf_data_source_ICLOUD)
+                or is_empty(Gb.conf_devices)):
+            configuration_needed_msg = 'ICLOUD3 APPLE ACCT OR DEVICES NEED TO BE SETUP'
+
+        if configuration_needed_msg:
+            post_greenbar_msg('iCloud3 Configuration not set up')
+            post_alert(f"{configuration_needed_msg}"
+                        f"{CRLF}Apple Accounts and Devices need to be added "
+                        f"on the iCloud3 Configure screens. Click the Gear icon "
+                        f"{GEAR_ICON} or go to HA Settings > Integrations > iCloud3.")
+
+            Gb.EvLog.update_event_log_display("")
+
+        # Request approval if analytics_enabled is None, remove the request if it was
+        # answered (Configure > Analytics)
+        if len(Gb.conf_apple_accounts) > 0:
+            start_ic3.request_analytics_approval()
+
+        # Request the switch to the iCloud3 repository if iCloud3 was installed from
+        # the iCloud3 Beta repository in HACS or the Marketplace
+        mp.check_icloud3_beta_repository()
+
+    except Exception as err:
+        log_exception(err)
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def stage_3_setup_configured_devices():
+
+    Gb.trace_prefix = 'STAGE3'
+    stage_title = f'Stage 3 > Device Configuration'
+    log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+
+    try:
+        Gb.EvLog.display_user_message(stage_title)
+
+        Gb.InternetError.is_internet_available()
+        event_msg = f"Internet Connection Test > Connected-{yes_no(not Gb.internet_error)}"
+        post_event(event_msg)
+        log_data(event_msg, Gb.InternetError.data)
+        if Gb.internet_error:
+            # Gb.iCloud3.rerun_stage_3 = True
+            return
+        # else:
+        #     Gb.iCloud3.rerun_stage_3 = False
+
+        start_ic3.initialize_data_source_variables()
+        restore_state.load_icloud3_restore_state_file()
+
+        # Make sure a full restart is done if all of the devices were not found in the Apple data
+        Gb.startup_alerts_by_source = {}
+        data_sources = f"Apple Account-{yes_no(Gb.conf_data_source_ICLOUD)}, "
+        data_sources += f"Mobile App-{yes_no(Gb.conf_data_source_MOBAPP)}"
+        post_event(f"Data Sources > {data_sources}")
+
+        # Reinitialize AppleAcct to recreate all Apple Acct objects
+        # if Gb.restart_requested_by == 'user':
+        if Gb.was_icloud3_reloaded is False:
+            aas.reset_AppleAcct_Gb_variables()
+
+        aas.cleanup_unknown_AppleAcct_Gb_variables_apple_id()
+        aas.relink_AppleAcct_conf_apple_acct()
+
+        if Gb.config_track_devices_change_flag:
+            pass
+        elif (Gb.conf_data_source_ICLOUD
+                and Gb.icloud_device_verified_cnt < len(Gb.Devices)):
+            Gb.config_track_devices_change_flag = True
+        elif Gb.is_log_level_debug:
+            Gb.config_track_devices_change_flag = True
+
+        start_ic3.create_Devices_object()
+
+    except Exception as err:
+        log_exception(err)
+
+    post_event(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+    Gb.EvLog.update_event_log_display("")
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def stage_4_setup_data_sources():
+
+    Gb.trace_prefix = 'STAGE4'
+    stage_title = f"Stage 4 > Connect to Apple Accounts"
+    log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+    Gb.EvLog.display_user_message(stage_title)
+
+    for Device in Gb.Devices:
+        Device.set_button_prefix_icon()
+
+        if is_empty(Device.Sensors):
+            Device.Sensors           = Gb.Sensors_by_devicename[Device.devicename]
+            Device.Sensors_from_zone = Gb.Sensors_by_devicename_from_zone[Device.devicename]
+
+
+    data_sources = f"Apple Account-{yes_no(Gb.conf_data_source_ICLOUD)}, "
+    data_sources += f"Mobile App-{yes_no(Gb.conf_data_source_MOBAPP)}"
+    post_event(f"Data Sources > {data_sources}")
+    post_dotted_line()
+
+    start_ic3.validate_upw_all_apple_accts()
+
+    post_dotted_line()
+
+    try:
+        # Gb.conf_apple_ids is set in start_ic3.validate_upw_all_apple_accts
+        if Gb.use_data_source_ICLOUD:
+            start_ic3.log_into_apple_accounts()
+
+            for AppleAcct in Gb.AppleAcct_by_apple_id.values():
+                if AppleAcct.account_locked:
+                    post_error_msg( f"{EVLOG_ERROR}Apple Account {AppleAcct.account_owner} "
+                                    f"is Locked. Log onto www.icloud.com and unlock "
+                                    f"your account to reauthorize location services.")
+                    # The alerts sensor is updated with the HA Repairs issue
+                    # (start_ic3._check_apple_acct_status_issues)
+
+            # Tell HA to generate reauth needed notification that will be handled
+            # handled in config_flow
+            if Gb.AppleAcct_reauth_needed:
+                try:
+                    Gb.hass.add_job(Gb.config_entry.async_start_reauth, Gb.hass)
+
+                    Gb.AppleAcct_reauth_needed.was_ha_auth_code_alert_sent = True
+                    post_event( f"Apple Acct > {Gb.AppleAcct_reauth_needed.account_owner}, "
+                                f"Auth request submitted() to HA")
+                except Exception as err:
+                    log_exception(err)
+
+        stage_title = f"Stage 4 > Connect to Mobile App Integration"
+        log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+        Gb.EvLog.display_user_message(stage_title)
+
+        mobapp_interface.get_entity_registry_mobile_app_devices()
+
+        if Gb.conf_data_source_MOBAPP:
+            start_ic3.setup_tracked_devices_for_mobapp()
+
+        stage_title = f"Stage 4 > Set up Apple & MobApp Data Sources"
+        log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+        Gb.EvLog.display_user_message(stage_title)
+
+        start_ic3.set_devices_verified_status()
+        were_all_verified = start_ic3.are_all_devices_verified()
+
+    except Exception as err:
+        log_exception(err)
+        were_all_verified = False
+
+    # Create the Request/Enter Auth Code entities for the Apple Accts that were logged
+    # into. The 5-sec loop creates them for one logged into later.
+    uach.remove_orphan_auth_entities()
+    uach.create_auth_entities()
+
+    post_event(f"{EVLOG_IC3_STAGE_HDR} {stage_title}")
+    Gb.EvLog.update_event_log_display("")
+
+    return were_all_verified
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def stage_5_configure_tracked_devices():
+
+    Gb.trace_prefix = 'STAGE5'
+    stage_title = f'Stage 5 > Device Configuration Summary'
+    log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+
+    if is_empty(Gb.conf_devices):
+        post_event(f"No Devices have been set up")
+    if is_empty(Gb.conf_apple_accounts):
+        post_event(f"No Apple Accounts have been set up")
+
+    for apple_id, AppleAcct in Gb.AppleAcct_by_apple_id.items():
+        log_debug_msg(f"AppleAcct Finialized > {AppleAcct.account_owner}")
+
+    try:
+        Gb.EvLog.display_user_message(stage_title)
+
+        # start_ic3.remove_unverified_untrackable_devices()
+        start_ic3.identify_tracked_monitored_devices()
+
+        start_ic3.setup_trackable_devices()
+        start_ic3.display_inactive_devices()
+        start_ic3.display_all_devices_config_info()
+        Gb.EvLog.setup_event_log_trackable_device_info()
+
+    except Exception as err:
+        log_exception(err)
+
+    Gb.EvLog.update_event_log_display("")
+    post_event(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+    Gb.EvLog.display_user_message('')
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def stage_6_initialization_complete():
+
+    Gb.trace_prefix = 'STAGE6'
+    stage_title = f'{ICLOUD3} Initialization Complete'
+    log_info_msg(f"{EVLOG_IC3_STAGE_HDR}{stage_title}")
+
+
+    start_ic3.display_platform_operating_mode_msg()
+    Gb.EvLog.display_user_message('')
+
+    Gb.startup_log_msgs = ''
+
+    try:
+        # Remove the configuration error Repairs issues that no longer exist
+        clear_config_error_repair_issues()
+
+        start_ic3.display_object_lists()
+        start_ic3.dump_startup_lists_to_log()
+        alert_msg = ''
+        if alerts_by_alert_key := all_alerts_by_alert_key():
+            for alert_key, msg in alerts_by_alert_key.items():
+                source = '' if instr(msg, ' > ') else f"{alert_key_source(alert_key)} > "
+                alert_msg += f"{CRLF_DOT}{source}{msg}"
+
+            Gb.EvLog.alert_message = 'Startup Alerts and Notifications are available for review'
+            post_alert( f"STARTUP ALERTS AND NOTIFICATIONS > "
+                        f"Scroll through the Event Log Startup section for more information: "
+                        f"{alert_msg}")
+
+    except Exception as err:
+        log_exception(err)
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def stage_7_initial_locate():
+    '''
+    The AppleAcct Authentication function updates the Apple raw data after the account
+    has been authenticated. Requesting the initial data update there speeds up loading iC3
+    since the Apple Acct login & authentication was started in the __init__ module.
+
+    This routine processes the new raw Apple data and set the initial location.
+    '''
+
+    # The restart will be requested if using Apple as a data source and no data was returned
+    # from AppleAcct
+    if is_empty(Gb.AppleAcct_by_apple_id):
+        return
+
+    # UNUSED (11/01/2026) - reinitialize_icloud_devices never ran, delete after v3.8.0
+    # if Gb.reinitialize_icloud_devices_flag and Gb.conf_icloud_device_cnt > 0:
+    #     return_code = reinitialize_icloud_devices()
+
+    Gb.trace_prefix = '1stLOC'
+
+    Gb.this_update_secs = time_now_secs()
+    Gb.this_update_time = time_now()
+    post_event("Requesting Initial Locate")
+
+    for Device in Gb.Devices:
+        post_greenbar_msg(f"Initial Locate > {Device.fname_devicename}")
+        Device.can_update_sensors = True
+        Device.was_icloud_initial_locate_done = True
+
+        if Device.AADev_icloud:
+            Device.update_dev_loc_data_from_raw_data_ICLOUD(Device.AADev_icloud)
+        else:
+            continue
+
+        Gb.iCloud3.process_updated_location_data(Device, ICLOUD)
+
+        Device.display_battery_info_msg(force_display=True)
+
+        if Device.no_location_data:
+            post_event(Device, f"{EVLOG_ALERT}NO GPS DATA RETURNED FROM ICLOUD LOCATION SERVICE")
+            error_msg = (f"{Device.fname_devicename} > "
+                        "No GPS data was returned from iCloud Location "
+                        "Service on the initial locate")
+            log_warning_msg(error_msg)
+
+        # Restore other items enter the first locate
+        Device.restore_state_reset_other_items()
+
+    post_greenbar_msg('')
+
+
+    if instr(str(Gb.alerts_by_alert_key.keys()), '^beta'):
+        post_event( f"{EVLOG_ATTENTION}BETA VERSIONS ARE NOW ICLOUD3 PRERELEASES"
+                    f"{CRLF}{mp.BETA_MOVING_ALERT_MSG}")
+
+
+
+    # Update the distance between all devices not that they have all been located
+    # Then go back through and update the device_tracker entity to set the distance
+    # between devices for the first time
+    det_interval.set_dist_to_devices(post_event_msg=True)
+    for Device in Gb.Devices:
+        Device.sensors[DISTANCE_TO_DEVICES] = \
+                    det_interval.format_dist_to_devices_msg(Device, time=True, age=False)
+        Device.write_ha_device_tracker_state()
+
+#------------------------------------------------------------------
+# UNUSED (11/01/2026) - never ran, it was gated on the legacy Gb.AppleAcct (always None).
+# Commented out, delete after v3.8.0
+# def reinitialize_icloud_devices():
+#     '''
+#     Setup restarting iCloud3 if it has not already been done.
+#
+#     Return  - True - Continue with Initial Locate
+#             - False - Restart failes
+#     '''
+#     try:
+#         if Gb.AppleAcct is None:
+#             return
+#
+#         Gb.reinitialize_icloud_devices_cnt += 1
+#         if Gb.reinitialize_icloud_devices_cnt > 2:
+#             return
+#
+#         Gb.is_icloud3_startup_inprocess = False
+#         Gb.reinitialize_icloud_devices_flag = False
+#         Gb.is_icloud3_initial_startup = False
+#
+#         alert_msg = f"{EVLOG_ALERT}"
+#         if Gb.conf_data_source_ICLOUD:
+#             unverified_devices = [devicename
+#                         for devicename, Device in Gb.Devices_by_devicename.items() \
+#                         if Device.was_verified is False]
+#
+#             alert_msg +=(f"UNVERIFIED DEVICES > One or more devices was not verified. "
+#                         f"Apple Account access may be down, slow to respond or the internet may be down."
+#                         f"{CRLF_DOT}Unverified Devices > {', '.join(unverified_devices)}")
+#         post_event(alert_msg)
+#
+#     except Exception as err:
+#         log_exception(err)
+#
+#     return
