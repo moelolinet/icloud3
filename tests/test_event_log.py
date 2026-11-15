@@ -2,13 +2,10 @@
 
 内部记录保留英文，只在输出给卡片时翻译；颜色前缀必须原样保留。
 """
-import sys, pathlib
 import pytest
 
-sys.path.insert(0, r"C:\Users\Administrator\Desktop\codex\icloud3\icloud3\custom_components\icloud3")
-
-from i18n import core
-import i18n.event_log as ev
+from icloud3.i18n import core
+from icloud3.i18n import event_log as ev
 
 
 @pytest.fixture(autouse=True)
