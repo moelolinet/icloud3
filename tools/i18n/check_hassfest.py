@@ -31,6 +31,8 @@ RE_URL = re.compile(
     r"[a-z0-9]+([\-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(/.*)?)",
     re.IGNORECASE,
 )
+RE_BAD_PLACEHOLDER = re.compile(r"\{(?!\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\})[^}]*\}")
+
 STEP_KEYS = {
     "title", "description", "data", "data_description", "menu_options",
     "menu_option_descriptions", "submit", "sections",
@@ -61,6 +63,12 @@ def main():
                 problems.append(f"{name}: leading/trailing space at {key}")
             if RE_URL.search(value):
                 problems.append(f"{name}: URL at {key}")
+            # {placeholder} 必须是合法标识符（{...} 里的键名等会被 hassfest 拒绝）
+            for bad in RE_BAD_PLACEHOLDER.findall(value):
+                problems.append(f"{name}: invalid placeholder {bad!r} at {key}")
+            # 只有 "_comment..." 开头的键是开发者注释；analytics_comment 是真实字段
+            if key.rsplit(".", 1)[-1].startswith("_comment"):
+                problems.append(f"{name}: developer comment key {key}")
 
         # step 内的键必须在白名单里
         for section in ("config", "options"):

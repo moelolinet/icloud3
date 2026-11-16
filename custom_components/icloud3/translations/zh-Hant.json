@@ -3,10 +3,6 @@
   "config": {
     "abort": {
       "translation_file_by": "@gcobb321",
-      "_comment.en.json": "out_of_range: Value must be between {min} and {max}.",
-      "_comment.form.1b": "data_schema=forms.form_dashboard_builder(self),",
-      "_comment.form.1c": "description_placeholders={'min': '1', 'max': '10'},",
-      "_comment.form.1d": "errors=self.errors)",
       "config_update_complete": "✅ iCloud3 配置更新成功",
       "already_configured": "iCloud3 配置屏幕用于添加设备和更改各种设置。\n\n关闭此屏幕，然后选择下面的齿轮图标 (⚙️)。 \n\n如果您要删除然后重新安装 iCloud3 集成，请删除 iCloud3，然后重新启动 HA 以清除 HA 的缓存。 HA重启后，重新添加iCloud3集成。您以前的配置文件不会被删除，并且将在 iCloud3 重新加载时使用。",
       "disabled": "iCloud3 已禁用，无法再次安装。启用iCloud3，然后在iCloud3集成条目中选择配置来配置iCloud3。\n\n如果要删除然后重新安装，请先重新启动HA，然后重新安装iCloud3",
