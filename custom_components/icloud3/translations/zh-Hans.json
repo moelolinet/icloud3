@@ -1252,7 +1252,7 @@
         "step": {
           "confirm": {
             "title": "iCloud3：{device}（设备已更新）",
-            "description": "### {device} > 检测到较新的 Apple 设备\n\n您的 Apple 设备 之一已推出更新版本。 iCloud3 配置已更新以使用较新的设备。\n\n更新了 **{device}** 的 Apple 设备：\n- {old_device} → {new_device}\n\n如果这是错误的，请将*设置应用程序*中的设备名称更改为其他名称。 Then select it on the *iCloud3 配置 > Update Device* screen for **{device}**.\n\n选择**提交**以删除此通知。"
+            "description": "### {device} > 检测到更新的 Apple 设备\n\n您的某台 Apple 设备已有更新版本。iCloud3 配置已更新为使用较新的设备。\n\n已为 **{device}** 更新 Apple 设备：\n- {old_device} → {new_device}\n\n如果这是错误的，请在设备的*设置*应用中将设备改成其他名称，然后在\n*iCloud3 配置 > 更新设备* 画面中为 **{device}** 重新选择它。\n\n选择 **提交** 以移除此提示。"
           }
         },
         "create_entry": {

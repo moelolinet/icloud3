@@ -1,7 +1,9 @@
 """Shared bootstrap for the local verification scripts.
 
-Adds the repository to sys.path and installs inert stand-ins for two optional
-Home Assistant dependencies that have no Windows wheels.
+Adds the repository to sys.path and installs inert stand-ins for optional Home
+Assistant dependencies that are unavailable in this sandbox (native packages
+without wheels, and HA's assist/conversation stack, which iCloud3 only reaches
+through ``mobile_app.notify``).
 """
 import pathlib
 import sys
@@ -13,13 +15,15 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "icloud3/custom_components"))
 
 
-def _install(name, **attrs):
-    if name in sys.modules:
-        return
-    module = types.ModuleType(name)
+def _module(name, **attrs):
+    module = sys.modules.get(name)
+    if module is None:
+        module = types.ModuleType(name)
+        sys.modules[name] = module
     for key, value in attrs.items():
-        setattr(module, key, value)
-    sys.modules[name] = module
+        if not hasattr(module, key):
+            setattr(module, key, value)
+    return module
 
 
 class _Inert:
@@ -30,5 +34,14 @@ class _Inert:
         return _Inert()
 
 
-_install("pymicro_vad", MicroVad=_Inert)
-_install("pyspeex_noise", AudioProcessor=_Inert)
+for _name, _attr in (
+    ("pymicro_vad", "MicroVad"),
+    ("pyspeex_noise", "AudioProcessor"),
+    ("hassil.fuzzy", "FuzzyNgramMatcher"),
+    ("gazetteer_matcher", "GazetteerMatcher"),
+):
+    _module(_name, **{_attr: _Inert})
+
+_module("homeassistant.components.mobile_app",
+        notify=types.SimpleNamespace(send_message=lambda *a, **k: None))
+_module("homeassistant.components.mobile_app.notify")

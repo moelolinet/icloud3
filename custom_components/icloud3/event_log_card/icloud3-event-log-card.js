@@ -57,6 +57,14 @@ const I18N_ZH = {
 }
 
 
+// The English label of an option. `action_fname` is sent back to iCloud3, which
+// compares it with English constants, so it must never carry translated text.
+function ic3EnglishLabel(option) {
+    if (!option) return ""
+    if (option.dataset && option.dataset.label !== undefined) return option.dataset.label
+    return option.innerText || ""
+}
+
 // Translate a UI label when the dashboard language is Chinese.
 function ic3Text(value, hass) {
     const lang = (hass && hass.language) || (hass && hass.locale && hass.locale.language) || ""
@@ -147,6 +155,7 @@ class iCloud3EventLogCard extends HTMLElement {
         //  ACTION OPTIONS - CONTROL GROUP
         var btnActionGenActions    = document.createElement("option")
         var btnActionGenActionsTxt = document.createTextNode(ic3Text("Actions", this._hass))
+        btnActionGenActions.dataset.label = "Actions"
         btnActionGenActions.setAttribute("value", "action")
         btnActionGenActions.setAttribute("id", "optAction")
         btnActionGenActions.classList.add("btnActionOptionTransparent")
@@ -155,6 +164,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var TbtnActionOptRestart    = document.createElement("option")
         var TbtnActionOptRestartTxt = document.createTextNode(ic3Text("🔄 Restart iCloud3", this._hass))
+        TbtnActionOptRestart.dataset.label = "🔄 Restart iCloud3"
         TbtnActionOptRestart.setAttribute("value", "restart")
         TbtnActionOptRestart.classList.add("btnActionOption")
         TbtnActionOptRestart.appendChild(TbtnActionOptRestartTxt)
@@ -162,6 +172,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptPause    = document.createElement("option")
         var btnActionOptPauseTxt = document.createTextNode(ic3Text("🛑 Pause Tracking", this._hass))
+        btnActionOptPause.dataset.label = "🛑 Pause Tracking"
         btnActionOptPause.setAttribute("value", "pause")
         btnActionOptPause.setAttribute("background", "red")
         btnActionOptPause.classList.add("btnActionOption")
@@ -170,6 +181,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptResume    = document.createElement("option")
         var btnActionOptResumeTxt = document.createTextNode(ic3Text("✅ Resume Tracking", this._hass))
+        btnActionOptResume.dataset.label = "✅ Resume Tracking"
         btnActionOptResume.setAttribute("value", "resume")
         btnActionOptResume.classList.add("btnActionOption")
         btnActionOptResume.appendChild(btnActionOptResumeTxt)
@@ -179,6 +191,7 @@ class iCloud3EventLogCard extends HTMLElement {
         //  ACTION OPTIONS - ALL DEVICES GROUP
         var btnActionOptADEVhdr    = document.createElement("option")
         var btnActionOptADEVhdrTxt = document.createTextNode(ic3Text("______ ALL DEVICES ______", this._hass))
+        btnActionOptADEVhdr.dataset.label = "______ ALL DEVICES ______"
         btnActionOptADEVhdr.setAttribute("id", "optADEVhdr")
         btnActionOptADEVhdr.setAttribute("value", "group-title")
         btnActionOptADEVhdr.setAttribute("disabled", true)
@@ -188,6 +201,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptADEVLoc    = document.createElement("option")
         var btnActionOptADEVLocTxt = document.createTextNode(ic3Text("• Update Location from iCloud", this._hass))
+        btnActionOptADEVLoc.dataset.label = "• Update Location from iCloud"
         btnActionOptADEVLoc.setAttribute("value", "locate")
         btnActionOptADEVLoc.classList.add("btnActionOption")
         btnActionOptADEVLoc.appendChild(btnActionOptADEVLocTxt)
@@ -195,6 +209,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptADEVLocMobApp    = document.createElement("option")
         var btnActionOptADEVLocMobAppTxt = document.createTextNode(ic3Text("• Update Location from Mobile App", this._hass))
+        btnActionOptADEVLocMobApp.dataset.label = "• Update Location from Mobile App"
         btnActionOptADEVLocMobApp.setAttribute("value", "location")
         btnActionOptADEVLocMobApp.classList.add("btnActionOption")
         btnActionOptADEVLocMobApp.appendChild(btnActionOptADEVLocMobAppTxt)
@@ -204,6 +219,7 @@ class iCloud3EventLogCard extends HTMLElement {
         //  ACTION OPTIONS - DEVICE GROUP
         var btnActionOptSDEVhdr    = document.createElement("option")
         var btnActionOptSDEVhdrTxt = document.createTextNode(ic3Text("______ SELECTED DEVICE ______", this._hass))
+        btnActionOptSDEVhdr.dataset.label = "______ SELECTED DEVICE ______"
         btnActionOptSDEVhdr.setAttribute("id", "optSDEVhdr")
         btnActionOptSDEVhdr.setAttribute("value", "group-title")
         btnActionOptSDEVhdr.setAttribute("disabled", true)
@@ -213,6 +229,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptSDEVPause    = document.createElement("option")
         var btnActionOptSDEVPauseTxt = document.createTextNode(ic3Text("• Pause Tracking", this._hass))
+        btnActionOptSDEVPause.dataset.label = "• Pause Tracking"
         btnActionOptSDEVPause.setAttribute("value", "dev-pause")
         btnActionOptSDEVPause.classList.add("btnActionOption")
         btnActionOptSDEVPause.appendChild(btnActionOptSDEVPauseTxt)
@@ -220,6 +237,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptSDEVResume    = document.createElement("option")
         var btnActionOptSDEVResumeTxt = document.createTextNode(ic3Text("• Resume Tracking", this._hass))
+        btnActionOptSDEVResume.dataset.label = "• Resume Tracking"
         btnActionOptSDEVResume.setAttribute("value", "dev-resume")
         btnActionOptSDEVResume.classList.add("btnActionOption")
         btnActionOptSDEVResume.appendChild(btnActionOptSDEVResumeTxt)
@@ -227,6 +245,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptSDEVLoc    = document.createElement("option")
         var btnActionOptSDEVLocTxt = document.createTextNode(ic3Text("• Update Location from iCloud", this._hass))
+        btnActionOptSDEVLoc.dataset.label = "• Update Location from iCloud"
         btnActionOptSDEVLoc.setAttribute("value", "dev-locate")
         btnActionOptSDEVLoc.classList.add("btnActionOption")
         btnActionOptSDEVLoc.appendChild(btnActionOptSDEVLocTxt)
@@ -234,6 +253,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptSDEVMobRqst = document.createElement("option")
         var btnActionOptSDEVMobRqstTxt = document.createTextNode(ic3Text("• Update Location from Mobile App", this._hass))
+        btnActionOptSDEVMobRqst.dataset.label = "• Update Location from Mobile App"
         btnActionOptSDEVMobRqst.setAttribute("value", "dev-location")
         btnActionOptSDEVMobRqst.classList.add("btnActionOption")
         btnActionOptSDEVMobRqst.appendChild(btnActionOptSDEVMobRqstTxt)
@@ -241,6 +261,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptSDEVFind = document.createElement("option")
         var btnActionOptSDEVFindTxt = document.createTextNode(ic3Text("• Send Find-My-iPhone Alert", this._hass))
+        btnActionOptSDEVFind.dataset.label = "• Send Find-My-iPhone Alert"
         btnActionOptSDEVFind.setAttribute("value", "dev-find-iphone-alert")
         btnActionOptSDEVFind.classList.add("btnActionOption")
         btnActionOptSDEVFind.appendChild(btnActionOptSDEVFindTxt)
@@ -251,6 +272,7 @@ class iCloud3EventLogCard extends HTMLElement {
         //  ACTION OPTIONS - EVENT LOG GROUP
         var btnActionOptEVLhdr    = document.createElement("option")
         var btnActionOptEVLhdrTxt = document.createTextNode(ic3Text("______ EVENT LOG ______", this._hass))
+        btnActionOptEVLhdr.dataset.label = "______ EVENT LOG ______"
         btnActionOptEVLhdr.setAttribute("id", "optEVLhdr")
         btnActionOptEVLhdr.setAttribute("value", "group-title")
         btnActionOptEVLhdr.setAttribute("disabled", true)
@@ -260,6 +282,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptEVL1 = document.createElement("option")
         var btnActionOptEVL1Txt = document.createTextNode(ic3Text("• Export Event Log", this._hass))
+        btnActionOptEVL1.dataset.label = "• Export Event Log"
         btnActionOptEVL1.setAttribute("value", "dev-export_event_log")
         btnActionOptEVL1.classList.add("btnActionOption")
         btnActionOptEVL1.appendChild(btnActionOptEVL1Txt)
@@ -267,6 +290,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptEVL = document.createElement("option")
         var btnActionOptEVLTxt = document.createTextNode(ic3Text("• Show Tracking Monitors", this._hass))
+        btnActionOptEVL.dataset.label = "• Show Tracking Monitors"
         btnActionOptEVL.setAttribute("value", "dev-log_level: monitor")
         btnActionOptEVL.setAttribute("id", "optMonitor")
         btnActionOptEVL.classList.add("btnActionOption")
@@ -275,6 +299,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptEVL3 = document.createElement("option")
         var btnActionOptEVL3Txt = document.createTextNode(ic3Text("• Show Startup Log, Errors and Alerts", this._hass))
+        btnActionOptEVL3.dataset.label = "• Show Startup Log, Errors and Alerts"
         btnActionOptEVL3.setAttribute("value", "dev-refresh_event_log")
         btnActionOptEVL3.setAttribute("id", "optStartuplog")
         btnActionOptEVL3.classList.add("btnActionOption")
@@ -283,6 +308,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptEVL4 = document.createElement("option")
         var btnActionOptEVL4Txt = document.createTextNode(ic3Text("• Start Debug Logging", this._hass))
+        btnActionOptEVL4.dataset.label = "• Start Debug Logging"
         btnActionOptEVL4.setAttribute("value", "dev-log_level: debug")
         btnActionOptEVL4.setAttribute("id", "optDebug")
         btnActionOptEVL4.classList.add("btnActionOption")
@@ -291,6 +317,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptEVL5 = document.createElement("option")
         var btnActionOptEVL5Txt = document.createTextNode(ic3Text("• Start Rawdata Logging", this._hass))
+        btnActionOptEVL5.dataset.label = "• Start Rawdata Logging"
         btnActionOptEVL5.setAttribute("value", "dev-log_level: rawdata")
         btnActionOptEVL5.setAttribute("id", "optRawdata")
         btnActionOptEVL5.classList.add("btnActionOption")
@@ -301,6 +328,7 @@ class iCloud3EventLogCard extends HTMLElement {
         //  ACTION OPTIONS - OTHER ACTIONS GROUP
         var btnActionOptOAhdr    = document.createElement("option")
         var btnActionOptOAhdrTxt = document.createTextNode(ic3Text("______ OTHER ACTIONS ______", this._hass))
+        btnActionOptOAhdr.dataset.label = "______ OTHER ACTIONS ______"
         btnActionOptOAhdr.setAttribute("id", "optOAhdr")
         btnActionOptOAhdr.setAttribute("value", "group-title")
         btnActionOptOAhdr.setAttribute("disabled", true)
@@ -311,6 +339,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptOA8 = document.createElement("option")
         var btnActionOptOA8Txt = document.createTextNode(ic3Text("• WazeHist-Recalculate Route Time/Dist", this._hass))
+        btnActionOptOA8.dataset.label = "• WazeHist-Recalculate Route Time/Dist"
         btnActionOptOA8.setAttribute("value", "wazehist_maint")
         btnActionOptOA8.setAttribute("id", "optWazeHistMaint")
         btnActionOptOA8.classList.add("btnActionOption")
@@ -319,6 +348,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptOA7 = document.createElement("option")
         var btnActionOptOA7Txt = document.createTextNode(ic3Text("• WazeHist-Load Track Locations for Map", this._hass))
+        btnActionOptOA7.dataset.label = "• WazeHist-Load Track Locations for Map"
         btnActionOptOA7.setAttribute("value", "wazehist_track")
         btnActionOptOA7.setAttribute("id", "optWazeHistTrack")
         btnActionOptOA7.classList.add("btnActionOption")
@@ -329,6 +359,7 @@ class iCloud3EventLogCard extends HTMLElement {
         //  ACTION OPTIONS - I ICLOUD 3 VERSION GROUP
         var btnActionOptVERhdr    = document.createElement("option")
         var btnActionOptVERhdrTxt = document.createTextNode(ic3Text("______ VERSION INFO ______", this._hass))
+        btnActionOptVERhdr.dataset.label = "______ VERSION INFO ______"
         btnActionOptVERhdr.setAttribute("id", "optVERhdr")
         btnActionOptVERhdr.setAttribute("value", "group-title")
         btnActionOptVERhdr.setAttribute("disabled", true)
@@ -338,6 +369,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptVERiC3 = document.createElement("option")
         var btnActionOptVERiC3Txt = document.createTextNode(ic3Text("• iCloud3 v?.?", this._hass))
+        btnActionOptVERiC3.dataset.label = "• iCloud3 v?.?"
         btnActionOptVERiC3.classList.add("btnActionOption")
         btnActionOptVERiC3.setAttribute("id", "optiC3Version")
         btnActionOptVERiC3.setAttribute("disabled", true)
@@ -354,6 +386,7 @@ class iCloud3EventLogCard extends HTMLElement {
 
         var btnActionOptVEREvlogLatest = document.createElement("option")
         var btnActionOptVEREvlogLatestTxt = document.createTextNode(ic3Text("• EvLog v?.??.??", this._hass))
+        btnActionOptVEREvlogLatest.dataset.label = "• EvLog v?.??.??"
         btnActionOptVEREvlogLatest.classList.add("btnActionOption")
         btnActionOptVEREvlogLatest.setAttribute("id", "optEvLogLatest")
         btnActionOptVEREvlogLatest.setAttribute("disabled", true)
@@ -2627,7 +2660,7 @@ class iCloud3EventLogCard extends HTMLElement {
                 this._hass.callService("icloud3", "action",
                     {
                         command: actionValue,
-                        action_fname: btnAction.options[actionIndex].innerText,
+                        action_fname: ic3EnglishLabel(btnAction.options[actionIndex]),
                         device_name: actionDevicename
                     })
             }
@@ -2637,7 +2670,7 @@ class iCloud3EventLogCard extends HTMLElement {
             this._hass.callService("icloud3", "action",
                 {
                     command: actionValue,
-                    action_fname: btnAction.options[actionIndex].innerText
+                    action_fname: ic3EnglishLabel(btnAction.options[actionIndex])
                 })
 
             if (actionValue == "restart") {

@@ -25,6 +25,19 @@ def leaves(node):
         yield node
 
 
+# 代码里当作「值」用的键（配置值、字典键、内部常量）。
+# 它们绝不能出现在翻译表里，否则默认值/提交值会被翻译成中文。
+CODE_VALUES = {
+    "all-devices", "iphone-first-2", "result-summary", "track-details",
+    "prerelease_switch_failed", "prerelease_switch_not_found", "prerelease_repo_not_installed",
+    "rarely_updated_parms", "config", "data", "items", "path", "title", "views",
+}
+
+
+def is_code_value(text):
+    return text in CODE_VALUES
+
+
 def main():
     en = json.loads(EN.read_text(encoding="utf-8"))
     mt = json.loads(MT.read_text(encoding="utf-8"))
@@ -35,10 +48,10 @@ def main():
         if not isinstance(english, str):
             continue
         zh = mt.get(english)
-        if zh and zh != english:
+        if zh and zh != english and not is_code_value(english):
             table.setdefault(english, zh)
     for english, zh in mt_ui.items():
-        if zh and zh != english:
+        if zh and zh != english and not is_code_value(english):
             table.setdefault(english, zh)
 
     OUT.write_text(
