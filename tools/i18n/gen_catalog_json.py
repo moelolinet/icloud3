@@ -10,7 +10,17 @@
 import json
 import pathlib
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+HERE = pathlib.Path(__file__).resolve().parent
+
+# Locate the repository root without assuming the checkout layout: the same
+# tools run inside the upstream clone and inside this fork.
+ROOT = next(
+    (parent for parent in HERE.parents
+     if (parent / "custom_components" / "icloud3").is_dir()),
+    None,
+)
+if ROOT is None:
+    raise SystemExit("cannot locate custom_components/icloud3")
 EN = ROOT / "custom_components/icloud3/translations/en.json"
 MT = ROOT / "tools/i18n/mt.json"
 MT_UI = ROOT / "tools/i18n/mt_ui.json"

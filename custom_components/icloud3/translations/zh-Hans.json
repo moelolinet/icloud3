@@ -5,8 +5,8 @@
       "translation_file_by": "@gcobb321",
       "_comment.en.json": "out_of_range: Value must be between {min} and {max}.",
       "_comment.form.1b": "data_schema=forms.form_dashboard_builder(self),",
-      "_comment.form.1c": "     description_placeholders={'min': '1', 'max': '10'},",
-      "_comment.form.1d": "     errors=self.errors)",
+      "_comment.form.1c": "description_placeholders={'min': '1', 'max': '10'},",
+      "_comment.form.1d": "errors=self.errors)",
       "config_update_complete": "✅ iCloud3 配置更新成功",
       "already_configured": "iCloud3 配置屏幕用于添加设备和更改各种设置。\n\n关闭此屏幕，然后选择下面的齿轮图标 (⚙️)。 \n\n如果您要删除然后重新安装 iCloud3 集成，请删除 iCloud3，然后重新启动 HA 以清除 HA 的缓存。 HA重启后，重新添加iCloud3集成。您以前的配置文件不会被删除，并且将在 iCloud3 重新加载时使用。",
       "disabled": "iCloud3 已禁用，无法再次安装。启用iCloud3，然后在iCloud3集成条目中选择配置来配置iCloud3。\n\n如果要删除然后重新安装，请先重新启动HA，然后重新安装iCloud3",
@@ -76,7 +76,7 @@
           "account_selected": "APPLE 账户",
           "auth_method": "方法 - 通过文本消息将代码发送到推送通知窗口或使用安全密钥",
           "auth_code": "验证码 - 受信任设备上显示的验证码",
-          "terms_of_use": "使用条款 - 接受Apple`使用条款`。欲了解更多信息，请前往http://icloud.com",
+          "terms_of_use": "使用条款 - 接受Apple`使用条款`。欲了解更多信息，请前往icloud.com",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
         }
       },
@@ -95,7 +95,7 @@
       },
       "reauth_code_from_applecom_login": {
         "title": "从Apple.com获取验证码",
-        "description": "如果您请求验证码，但“已请求登录”窗口或短信从未到达，请按照以下步骤生成验证码： \n\n**&#9312; 转到您的 Apple 账户登录屏幕** - 单击此链接可在网络浏览器中转到您的 Apple 账户登录 屏幕 https://appleid.apple.com/ \n* 如果您已经登录，请退出 \n* 如果您使用的是配备 Face ID 的设备，请遮盖摄像头，以免再次自动登录您的帐户。\n\n**&#9313; 登录您的 Apple 账户** - 输入您的 _**apple_id**_，点击 _**继续**_，输入您的 _**密码**_，点击 _**登录**_。如果您使用带有 Face ID 的设备（iPhone、iPad），您可能必须选择_使用不同的 Apple 账户_ 来绕过 Face ID 流程。\n\n* 授权码将一如既往地显示在受信任设备上。\n* 像平常一样显示授权码。\n\n _**请勿在 apple.com 上输入该信息。这将验证 apple.com，而不是 iCloud3**_\n\n**&#9314; 返回此屏幕** - 如果您打开浏览器选项卡（即 Windows）来登录您的 Apple 账户，则可以将其关闭。\n\n**&#9315; 验证iCloud3** - 在下面的字段中输入验证码并将其发送到Apple进行验证。如果不被接受，请再次按照相同的步骤获取新代码。",
+        "description": "如果您请求验证码，但“已请求登录”窗口或短信从未到达，请按照以下步骤生成验证码： \n\n**&#9312; 转到您的 Apple 账户登录屏幕** - 单击此链接可在网络浏览器中转到您的 Apple 账户登录 屏幕 appleid.apple.com/ \n* 如果您已经登录，请退出 \n* 如果您使用的是配备 Face ID 的设备，请遮盖摄像头，以免再次自动登录您的帐户。\n\n**&#9313; 登录您的 Apple 账户** - 输入您的 _**apple_id**_，点击 _**继续**_，输入您的 _**密码**_，点击 _**登录**_。如果您使用带有 Face ID 的设备（iPhone、iPad），您可能必须选择_使用不同的 Apple 账户_ 来绕过 Face ID 流程。\n\n* 授权码将一如既往地显示在受信任设备上。\n* 像平常一样显示授权码。\n\n _**请勿在 apple.com 上输入该信息。这将验证 apple.com，而不是 iCloud3**_\n\n**&#9314; 返回此屏幕** - 如果您打开浏览器选项卡（即 Windows）来登录您的 Apple 账户，则可以将其关闭。\n\n**&#9315; 验证iCloud3** - 在下面的字段中输入验证码并将其发送到Apple进行验证。如果不被接受，请再次按照相同的步骤获取新代码。",
         "data": {
           "auth_code": "验证码 - 登录您的Apple 账户刚刚收到的验证码",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
@@ -155,7 +155,7 @@
       "apple_acct_apple_id_inuse_error": "错误：此用户名正被另一个数据源条目使用。在删除另一项之前，无法更改这一项。选择另一个并先停止使用它。",
       "apple_acct_not_available": "❌登录失败，Apple 账户不可用",
       "apple_acct_locked": "❌ 登录失败、未知 Apple 账户或账户被锁定",
-      "apple_acct_locked_security": "❌登录失败，Apple出于安全原因已锁定此Apple 账户。前往https://iforgot.apple.com解锁或重置密码。然后再次保存Apple 账户即可登录。",
+      "apple_acct_locked_security": "❌登录失败，Apple出于安全原因已锁定此Apple 账户。前往iforgot.apple.com解锁或重置密码。然后再次保存Apple 账户即可登录。",
       "apple_acct_not_logged_into": "Apple 账户未登录（用户名或密码无效）",
       "apple_acct_updated_login_error": "Apple 账户信息已保存，登录 Apple 账户时发生错误",
       "apple_acct_data_source_warning": "警告：Apple 账户已设置但未用作数据源",
@@ -267,18 +267,16 @@
       },
       "menu_0": {
         "title": "配置设备和传感器",
-        "xdescription": "此菜单包含与 Apple 账户、跟踪设备、Apple 身份验证、传感器、iCloud3 仪表板 和维护工具相关的项目",
         "data": {
-          "menu_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ ",
-          "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ "
+          "menu_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯",
+          "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
         }
       },
       "menu_1": {
         "title": "配置参数",
-        "xdescription": "此菜单包含与配置 iCloud3 应如何跟踪设备以及如何报告结果相关的项目",
         "data": {
-          "menu_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ ",
-          "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ "
+          "menu_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯",
+          "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
         }
       },
       "xrestart_ha": {
@@ -315,7 +313,7 @@
         "data": {
           "data_source": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 数据来源",
           "data_source_apple_acct": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ APPLE ICLOUD 账户",
-          "apple_accts": " ",
+          "apple_accts": "",
           "data_source_mobapp": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯",
           "xdata_source_mobapp": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 移动应用集成",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
@@ -363,7 +361,7 @@
           "account_selected": "待验证的 Apple 账户",
           "auth_method": "方法 - 通过文本消息将代码发送到推送通知窗口或使用安全密钥",
           "auth_code": "验证码 - 受信任设备上显示的验证码",
-          "terms_of_use": "使用条款 - 接受Apple`使用条款`。欲了解更多信息，请前往http://icloud.com",
+          "terms_of_use": "使用条款 - 接受Apple`使用条款`。欲了解更多信息，请前往icloud.com",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
         }
       },
@@ -395,7 +393,7 @@
       },
       "reauth_code_from_applecom_login": {
         "title": "从Apple.com获取验证码",
-        "description": "如果您请求验证码，但“已请求登录”窗口或短信从未到达，请按照以下步骤生成验证码： \n\n**&#9312; 转到您的 Apple 账户登录屏幕** - 单击此链接可在网络浏览器中转到您的 Apple 账户登录 屏幕 https://appleid.apple.com/ \n* 如果您已经登录，请退出 \n* 如果您使用的是配备 Face ID 的设备，请遮盖摄像头，以免再次自动登录您的帐户。\n\n**&#9313; 登录您的 Apple 账户** - 输入您的 _**apple_id**_，点击 _**继续**_，输入您的 _**密码**_，点击 _**登录**_。如果您使用带有 Face ID 的设备（iPhone、iPad），您可能必须选择_使用不同的 Apple 账户_ 来绕过 Face ID 流程。\n\n* 授权码将一如既往地显示在受信任设备上。\n* 像平常一样显示授权码。\n\n _**请勿在 apple.com 上输入该信息。这将验证 apple.com，而不是 iCloud3**_\n\n**&#9314; 返回此屏幕** - 如果您打开浏览器选项卡（即 Windows）来登录您的 Apple 账户，则可以将其关闭。\n\n**&#9315; 验证iCloud3** - 在下面的字段中输入验证码并将其发送到Apple进行验证。如果不被接受，请再次按照相同的步骤获取新代码。",
+        "description": "如果您请求验证码，但“已请求登录”窗口或短信从未到达，请按照以下步骤生成验证码： \n\n**&#9312; 转到您的 Apple 账户登录屏幕** - 单击此链接可在网络浏览器中转到您的 Apple 账户登录 屏幕 appleid.apple.com/ \n* 如果您已经登录，请退出 \n* 如果您使用的是配备 Face ID 的设备，请遮盖摄像头，以免再次自动登录您的帐户。\n\n**&#9313; 登录您的 Apple 账户** - 输入您的 _**apple_id**_，点击 _**继续**_，输入您的 _**密码**_，点击 _**登录**_。如果您使用带有 Face ID 的设备（iPhone、iPad），您可能必须选择_使用不同的 Apple 账户_ 来绕过 Face ID 流程。\n\n* 授权码将一如既往地显示在受信任设备上。\n* 像平常一样显示授权码。\n\n _**请勿在 apple.com 上输入该信息。这将验证 apple.com，而不是 iCloud3**_\n\n**&#9314; 返回此屏幕** - 如果您打开浏览器选项卡（即 Windows）来登录您的 Apple 账户，则可以将其关闭。\n\n**&#9315; 验证iCloud3** - 在下面的字段中输入验证码并将其发送到Apple进行验证。如果不被接受，请再次按照相同的步骤获取新代码。",
         "data": {
           "auth_code": "验证码 - 登录您的Apple 账户刚刚收到的验证码",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
@@ -561,7 +559,7 @@
           "deleted_sensors": "────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────已删除的传感器 - 属于不再使用的 iCloud3 设备的传感器",
           "suffix_error": "────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────后缀错误 > 已被 HA 复制且现在不可用的传感器（`[sensor]` 和 `[sensor_2]`）",
           "other": "────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────其他传感器 > 不属于其他组的传感器",
-          "check_all": " ",
+          "check_all": "",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
         }
       },
@@ -741,7 +739,7 @@
         "title": "iCloud3 统计",
         "description": "iCloud3 分析从 15,000 多个 iCloud3 用户收集版本、位置（国家/地区）、使用情况和各种计数。其目的是报告摘要信息，显示用户所在位置、正在使用的版本以及各种计数（Apple 账户、跟踪的设备、评论等）。您将发送的数据如下所示。可以在*报告*屏幕上选择摘要报告\n \n希望您能够启用下面的*发送iCloud3 分析数据*并参与此项目。\n \n{downloads}",
         "data": {
-          "analytics_enabled": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ ",
+          "analytics_enabled": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯",
           "analytics_comment": "COMMENT - How are you using iCloud3 to track your devices?",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
         },
@@ -754,7 +752,7 @@
         "title": "iCloud3 统计报告",
         "description": "分析数据的摘要报告可供使用，并可从下面的列表中选择。报告将显示在此屏幕上。\n \n{downloads}",
         "data": {
-          "analytics_enabled": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ ",
+          "analytics_enabled": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯",
           "report_selected": "报告 - 从 iCloud3 分析数据生成此报告",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
         },
@@ -790,17 +788,17 @@
     },
     "apple_acct_terms_of_use": {
       "title": "iCloud3：{account}、Apple“使用条款”批准",
-      "description": "Apple 已更新其 *iCloud 使用条款*。在接受新条款之前，将不再为 **{account}** Apple 账户提供设备位置数据。跟踪仅限于移动应用 提供的位置数据。\n\n选择 **提交** 接受 *使用条款*（如果不接受，则选择 **X**）。 iCloud3 将向 Apple 发送“我同意”并重新启动。\n\n您还可以在 *iCloud3 配置 > Apple 账户登录* 屏幕上或通过登录 www.icloud.com 接受它们。",
+      "description": "Apple 已更新其 *iCloud 使用条款*。在接受新条款之前，将不再为 **{account}** Apple 账户提供设备位置数据。跟踪仅限于移动应用 提供的位置数据。\n\n选择 **提交** 接受 *使用条款*（如果不接受，则选择 **X**）。 iCloud3 将向 Apple 发送“我同意”并重新启动。\n\n您还可以在 *iCloud3 配置 > Apple 账户登录* 屏幕上或通过登录 icloud.com 接受它们。",
       "fix_flow": {
         "step": {
           "confirm": {
             "title": "iCloud3：{account} (使用条款)",
-            "description": "### {account} > 接受Apple 的使用条款\n\nApple 已更新其 *iCloud 使用条款*。在接受新条款之前，将不再为 **{account}** Apple 账户提供设备位置数据。 \n\n*使用条款*可以在https://www.apple.com/legal/internet-services/icloud/查看\n\n选择 **提交** 以接受 Apple 的 *使用条款* 作为 **{account}**（如果不是，则选择 **X**）。 iCloud3 将发送“我同意”到Apple，然后重新启动。"
+            "description": "### {account} > 接受Apple 的使用条款\n\nApple 已更新其 *iCloud 使用条款*。在接受新条款之前，将不再为 **{account}** Apple 账户提供设备位置数据。 \n\n*使用条款*可以在apple.com/legal/internet-services/icloud/查看\n\n选择 **提交** 以接受 Apple 的 *使用条款* 作为 **{account}**（如果不是，则选择 **X**）。 iCloud3 将发送“我同意”到Apple，然后重新启动。"
           }
         },
         "abort": {
           "fix_action_not_available": "iCloud3 现在无法接受使用条款。可能还在开始。 iCloud3 启动完毕后重试。",
-          "fix_action_failed": "Apple不接受使用条款。请参阅 iCloud3 事件日志 了解更多信息。您还可以通过登录 www.icloud.com 接受它们。"
+          "fix_action_failed": "Apple不接受使用条款。请参阅 iCloud3 事件日志 了解更多信息。您还可以通过登录 icloud.com 接受它们。"
         },
         "create_entry": {
           "default": "Apple 的 使用条款 被接受为 **{account}** Apple 账户。\n\niCloud3 正在重新启动。 iCloud 位置将再次用于其设备。"
@@ -809,12 +807,12 @@
     },
     "apple_acct_locked": {
       "title": "iCloud3：**{account}**，Apple 账户已锁定",
-      "description": "Apple 报告 **{account}** Apple 账户已锁定。在解锁之前，将不再为 **{account}** Apple 账户提供设备位置数据。跟踪仅限于移动应用 提供的位置数据。\n\n登录*www.icloud.com*或前往https://iforgot.apple.com解锁帐户。然后重新启动iCloud3（*iCloud3 配置>工具>重新启动iCloud3*）。\n\n当 iCloud3 启动并且 Apple 报告帐户已解锁时，此条目将被删除。",
+      "description": "Apple 报告 **{account}** Apple 账户已锁定。在解锁之前，将不再为 **{account}** Apple 账户提供设备位置数据。跟踪仅限于移动应用 提供的位置数据。\n\n登录*icloud.com*或前往iforgot.apple.com解锁帐户。然后重新启动iCloud3（*iCloud3 配置>工具>重新启动iCloud3*）。\n\n当 iCloud3 启动并且 Apple 报告帐户已解锁时，此条目将被删除。",
       "fix_flow": {
         "step": {
           "confirm": {
             "title": "iCloud3：{account}（账户锁定）",
-            "description": "### {account} > Apple 账户已锁定\n\nApple 报告 **{account}** Apple 账户已锁定。在解锁之前，将不再为 **{account}** Apple 账户提供设备位置数据。\n\n登录*www.icloud.com*或前往https://iforgot.apple.com解锁帐户。然后重新启动iCloud3。\n\n选择**提交**以删除此通知。如果帐户仍处于锁定状态，则下次 iCloud3 启动时会再次发布。"
+            "description": "### {account} > Apple 账户已锁定\n\nApple 报告 **{account}** Apple 账户已锁定。在解锁之前，将不再为 **{account}** Apple 账户提供设备位置数据。\n\n登录*icloud.com*或前往iforgot.apple.com解锁帐户。然后重新启动iCloud3。\n\n选择**提交**以删除此通知。如果帐户仍处于锁定状态，则下次 iCloud3 启动时会再次发布。"
           }
         },
         "create_entry": {
@@ -925,7 +923,7 @@
           "reauth_apple_acct_unknown": "Apple 请求验证码的帐户未知",
           "apple_acct_apple_id_inuse_error": "错误：此用户名正被另一个数据源条目使用。在删除另一项之前，无法更改这一项。选择另一个并先停止使用它。",
           "apple_acct_locked": "❌ 登录失败、未知 Apple 账户或账户被锁定",
-          "apple_acct_locked_security": "❌登录失败，Apple出于安全原因已锁定此Apple 账户。前往https://iforgot.apple.com解锁或重置密码。然后再次保存Apple 账户即可登录。",
+          "apple_acct_locked_security": "❌登录失败，Apple出于安全原因已锁定此Apple 账户。前往iforgot.apple.com解锁或重置密码。然后再次保存Apple 账户即可登录。",
           "apple_acct_not_logged_into": "Apple 账户未登录（用户名或密码无效）",
           "apple_acct_updated_login_error": "Apple 账户信息已保存，登录 Apple 账户时发生错误",
           "apple_acct_not_set_up": "未设置Apple 账户。将它们添加到“APPLE 账户S”屏幕上（已选择）。然后点击下一步",
@@ -1022,7 +1020,7 @@
               "account_selected": "待验证的 Apple 账户",
               "auth_method": "方法 - 通过文本消息将代码发送到推送通知窗口或使用安全密钥",
               "auth_code": "验证码 - 受信任设备上显示的验证码",
-              "terms_of_use": "使用条款 - 接受Apple`使用条款`。欲了解更多信息，请前往http://icloud.com",
+              "terms_of_use": "使用条款 - 接受Apple`使用条款`。欲了解更多信息，请前往icloud.com",
               "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
             }
           },
@@ -1037,7 +1035,7 @@
           },
           "reauth_code_from_applecom_login": {
             "title": "从Apple.com获取验证码",
-            "description": "如果您请求验证码，但“已请求登录”窗口或短信从未到达，请按照以下步骤生成验证码： \n\n**&#9312; 转到您的 Apple 账户登录屏幕** - 单击此链接可在网络浏览器中转到您的 Apple 账户登录 屏幕 https://appleid.apple.com/ \n* 如果您已经登录，请退出 \n* 如果您使用的是配备 Face ID 的设备，请遮盖摄像头，以免再次自动登录您的帐户。\n\n**&#9313; 登录您的 Apple 账户** - 输入您的 _**apple_id**_，点击 _**继续**_，输入您的 _**密码**_，点击 _**登录**_。如果您使用带有 Face ID 的设备（iPhone、iPad），您可能必须选择_使用不同的 Apple 账户_ 来绕过 Face ID 流程。\n\n* 授权码将一如既往地显示在受信任设备上。\n* 像平常一样显示授权码。\n\n _**请勿在 apple.com 上输入该信息。这将验证 apple.com，而不是 iCloud3**_\n\n**&#9314; 返回此屏幕** - 如果您打开浏览器选项卡（即 Windows）来登录您的 Apple 账户，则可以将其关闭。\n\n**&#9315; 验证iCloud3** - 在下面的字段中输入验证码并将其发送到Apple进行验证。如果不被接受，请再次按照相同的步骤获取新代码。",
+            "description": "如果您请求验证码，但“已请求登录”窗口或短信从未到达，请按照以下步骤生成验证码： \n\n**&#9312; 转到您的 Apple 账户登录屏幕** - 单击此链接可在网络浏览器中转到您的 Apple 账户登录 屏幕 appleid.apple.com/ \n* 如果您已经登录，请退出 \n* 如果您使用的是配备 Face ID 的设备，请遮盖摄像头，以免再次自动登录您的帐户。\n\n**&#9313; 登录您的 Apple 账户** - 输入您的 _**apple_id**_，点击 _**继续**_，输入您的 _**密码**_，点击 _**登录**_。如果您使用带有 Face ID 的设备（iPhone、iPad），您可能必须选择_使用不同的 Apple 账户_ 来绕过 Face ID 流程。\n\n* 授权码将一如既往地显示在受信任设备上。\n* 像平常一样显示授权码。\n\n _**请勿在 apple.com 上输入该信息。这将验证 apple.com，而不是 iCloud3**_\n\n**&#9314; 返回此屏幕** - 如果您打开浏览器选项卡（即 Windows）来登录您的 Apple 账户，则可以将其关闭。\n\n**&#9315; 验证iCloud3** - 在下面的字段中输入验证码并将其发送到Apple进行验证。如果不被接受，请再次按照相同的步骤获取新代码。",
             "data": {
               "auth_code": "验证码 - 登录您的Apple 账户刚刚收到的验证码",
               "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
@@ -1131,7 +1129,7 @@
           "reauth_apple_acct_unknown": "Apple 请求验证码的帐户未知",
           "apple_acct_apple_id_inuse_error": "错误：此用户名正被另一个数据源条目使用。在删除另一项之前，无法更改这一项。选择另一个并先停止使用它。",
           "apple_acct_locked": "❌ 登录失败、未知 Apple 账户或账户被锁定",
-          "apple_acct_locked_security": "❌登录失败，Apple出于安全原因已锁定此Apple 账户。前往https://iforgot.apple.com解锁或重置密码。然后再次保存Apple 账户即可登录。",
+          "apple_acct_locked_security": "❌登录失败，Apple出于安全原因已锁定此Apple 账户。前往iforgot.apple.com解锁或重置密码。然后再次保存Apple 账户即可登录。",
           "apple_acct_not_logged_into": "Apple 账户未登录（用户名或密码无效）",
           "apple_acct_updated_login_error": "Apple 账户信息已保存，登录 Apple 账户时发生错误",
           "apple_acct_not_set_up": "未设置Apple 账户。将它们添加到“APPLE 账户S”屏幕上（已选择）。然后点击下一步",
