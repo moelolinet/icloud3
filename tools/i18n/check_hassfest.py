@@ -31,6 +31,7 @@ RE_URL = re.compile(
     r"[a-z0-9]+([\-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(/.*)?)",
     re.IGNORECASE,
 )
+RE_QUOTED_PLACEHOLDER = re.compile(r"\{\s*'[a-zA-Z_][a-zA-Z0-9_]*'\s*\}")
 RE_BAD_PLACEHOLDER = re.compile(r"\{(?!\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\})[^}]*\}")
 
 STEP_KEYS = {
@@ -61,6 +62,8 @@ def main():
                 continue
             if value != value.strip():
                 problems.append(f"{name}: leading/trailing space at {key}")
+            if RE_QUOTED_PLACEHOLDER.search(value):
+                problems.append(f"{name}: quoted placeholder at {key}")
             if RE_URL.search(value):
                 problems.append(f"{name}: URL at {key}")
             # {placeholder} 必须是合法标识符（{...} 里的键名等会被 hassfest 拒绝）

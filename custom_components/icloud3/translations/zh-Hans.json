@@ -87,7 +87,7 @@
       },
       "reauth_hwkey_progress": {
         "title": "触摸安全安全密钥",
-        "description": "现在HA服务器上{spinner}触摸键“{key_name}”\n\n超时（{remaining} 秒）"
+        "description": "{spinner}  现在请触摸 HA 服务器上的安全密钥 {key_name}\n\n剩余 {remaining} 秒后超时"
       },
       "reauth_code_from_applecom_login": {
         "title": "从Apple.com获取验证码",
@@ -370,7 +370,7 @@
       },
       "reauth_hwkey_progress": {
         "title": "触摸安全安全密钥",
-        "description": "现在HA服务器上{spinner}触摸键“{key_name}”\n\n超时（{remaining} 秒）"
+        "description": "{spinner}  现在请触摸 HA 服务器上的安全密钥 {key_name}\n\n剩余 {remaining} 秒后超时"
       },
       "user_auth_dashboard": {
         "title": "构建用户认证仪表板卡片",

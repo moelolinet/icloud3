@@ -87,7 +87,7 @@
       },
       "reauth_hwkey_progress": {
         "title": "Touch the Security Security Key",
-        "description": "{spinner}  Touch key '{key_name}' on the HA server now\n\nTimeout in {remaining} seconds"
+        "description": "{spinner}  Touch key {key_name} on the HA server now\n\nTimeout in {remaining} seconds"
       },
       "reauth_code_from_applecom_login": {
         "title": "Get an Authentication Code from Apple.com",
@@ -370,7 +370,7 @@
       },
       "reauth_hwkey_progress": {
         "title": "Touch the Security Security Key",
-        "description": "{spinner}  Touch key '{key_name}' on the HA server now\n\nTimeout in {remaining} seconds"
+        "description": "{spinner}  Touch key {key_name} on the HA server now\n\nTimeout in {remaining} seconds"
       },
       "user_auth_dashboard": {
         "title": "Build User Authentication Dashboard Card",
