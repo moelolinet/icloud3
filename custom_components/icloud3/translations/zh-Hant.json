@@ -342,9 +342,7 @@
           "server_location": "Apple 服务器位置 - 托管此帐户的 Apple 服务器的国家/地区",
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
         },
-        "data_description": {
-          "password_srp_enabled": "这表明登录Apple 账户时应如何验证密码。 PasswordSRP 协议通过互联网将编码密钥发送到Apple，而不是发送密码本身。 \n • 已启用- 使用密码SRP 协议\n • 已禁用 - 使用标准密码协议\n • 注意 - 如果短时间内尝试登录过多，Apple 服务器有时会拒绝输入密码。这样做是为了防止欺诈登录。返回错误 503-服务器拒绝连接。"
-        }
+        "data_description": {}
       },
       "delete_apple_acct": {
         "title": "删除Apple 账户",
@@ -601,8 +599,8 @@
           "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
         },
         "data_description": {
-          "time_zone_1_offset": "主要设备和位置时间 - 设备和当前位置时间（离开时或位于另一个时区）",
-          "time_zone_2_offset": "辅助设备和位置时间 - 设备和当前位置时间（离开时或位于另一个时区）"
+          "away_time_zone_1_offset": "主要设备和位置时间 - 设备和当前位置时间（离开时或位于另一个时区）",
+          "away_time_zone_2_offset": "辅助设备和位置时间 - 设备和当前位置时间（离开时或位于另一个时区）"
         }
       },
       "tracking_parameters": {
@@ -1009,9 +1007,7 @@
               "server_location": "Apple 服务器位置 - 托管此帐户的 Apple 服务器的国家/地区",
               "action_items": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ 操作命令"
             },
-            "data_description": {
-              "password_srp_enabled": "这表明登录Apple 账户时应如何验证密码。 PasswordSRP 协议通过互联网将编码密钥发送到Apple，而不是发送密码本身。 \n • 已启用- 使用密码SRP 协议\n • 已禁用 - 使用标准密码协议\n • 注意 - 如果短时间内尝试登录过多，Apple 服务器有时会拒绝输入密码。这样做是为了防止欺诈登录。返回错误 503-服务器拒绝连接。"
-            }
+            "data_description": {}
           },
           "reauth": {
             "title": "验证Apple 账户登录",

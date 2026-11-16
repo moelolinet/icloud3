@@ -62,13 +62,40 @@ def main():
             if RE_URL.search(value):
                 problems.append(f"{name}: URL at {key}")
 
+        # step 内的键必须在白名单里
         for section in ("config", "options"):
             for step, body in data.get(section, {}).get("step", {}).items():
                 if not isinstance(body, dict):
                     continue
-                for key in body:
+                for key, value in body.items():
                     if key not in STEP_KEYS:
                         problems.append(f"{name}: invalid step key {section}.step.{step}.{key}")
+                    # data_description 的每个键都必须有对应 data 字段
+                    if key == "data_description" and isinstance(value, dict):
+                        data_keys = set(body.get("data", {}))
+                        for dd_key in value:
+                            if dd_key not in data_keys:
+                                problems.append(
+                                    f"{name}: orphan data_description "
+                                    f"{section}.step.{step}.{dd_key}"
+                                )
+
+        # issues.<id>.fix_flow.step 里同样检查
+        for issue, body in data.get("issues", {}).items():
+            for step, step_body in (body.get("fix_flow", {}).get("step", {}) or {}).items():
+                if not isinstance(step_body, dict):
+                    continue
+                for key, value in step_body.items():
+                    if key not in STEP_KEYS:
+                        problems.append(f"{name}: invalid step key issues.{issue}.{step}.{key}")
+                    if key == "data_description" and isinstance(value, dict):
+                        data_keys = set(step_body.get("data", {}))
+                        for dd_key in value:
+                            if dd_key not in data_keys:
+                                problems.append(
+                                    f"{name}: orphan data_description "
+                                    f"issues.{issue}.{step}.{dd_key}"
+                                )
 
     print(f"checked 3 files, problems: {len(problems)}")
     for problem in problems[:40]:
