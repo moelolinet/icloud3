@@ -770,7 +770,6 @@
   "issues": {
     "icloud3_notice": {
       "title": "iCloud3：{title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -782,7 +781,6 @@
     },
     "apple_acct_terms_of_use": {
       "title": "iCloud3：{account}、Apple“使用条款”批准",
-      "description": "Apple 已更新其 *iCloud 使用条款*。在接受新条款之前，将不再为 **{account}** Apple 账户提供设备位置数据。跟踪仅限于移动应用 提供的位置数据。\n\n选择 **提交** 接受 *使用条款*（如果不接受，则选择 **X**）。 iCloud3 将向 Apple 发送“我同意”并重新启动。\n\n您还可以在 *iCloud3 配置 > Apple 账户登录* 屏幕上或通过登录 icloud.com 接受它们。",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -801,7 +799,6 @@
     },
     "apple_acct_locked": {
       "title": "iCloud3：**{account}**，Apple 账户已锁定",
-      "description": "Apple 报告 **{account}** Apple 账户已锁定。在解锁之前，将不再为 **{account}** Apple 账户提供设备位置数据。跟踪仅限于移动应用 提供的位置数据。\n\n登录*icloud.com*或前往iforgot.apple.com解锁帐户。然后重新启动iCloud3（*iCloud3 配置>工具>重新启动iCloud3*）。\n\n当 iCloud3 启动并且 Apple 报告帐户已解锁时，此条目将被删除。",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -816,7 +813,6 @@
     },
     "device_replaced": {
       "title": "iCloud3：{device}，较新的Apple 检测到设备",
-      "description": "您的 Apple 设备 之一已推出更新版本。需要更新 iCloud3 配置才能使用较新的设备。\n\n更改 **{device}** 的 Apple 设备：\n- {old_device} → {new_device}\n\n当前设备是{old_device_status}。\n\n选择提交以确认此选择并更新 **{device}** 的配置。",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -835,7 +831,6 @@
     },
     "update_device": {
       "title": "iCloud3：{title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -971,7 +966,6 @@
     },
     "update_apple_acct": {
       "title": "iCloud3：{title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1179,7 +1173,6 @@
     },
     "restart_icloud3": {
       "title": "iCloud3：{title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1198,7 +1191,6 @@
     },
     "analytics_approval": {
       "title": "iCloud3：iCloud3 分析，请求批准",
-      "description": "选择*启用*或*禁用*发送 iCloud3 Analytics 数据，然后选择 **提交**。",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1217,12 +1209,11 @@
     },
     "switch_repository": {
       "title": "iCloud3：Beta 版本现已成为 iCloud3 预发行版",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
             "title": "iCloud3：Beta 版本现已成为 iCloud3 预发行版",
-            "description": "## GitHub iCloud3_Beta Repo (gcobb321/icloud3_v3) 正在迁移以支持 {store} 安装要求\n\niCloud3 是从 *iCloud3 Beta* 存储库 (gcobb321/icloud3_v3) 安装的。该存储库不再更新。 iCloud3 Beta 版本现已在 *iCloud3* 存储库 (gcobb321/icloud3) 中预发布。\n\n### 执行此操作以设置 {store} iCloud3 Beta 安装设置\n选择 **提交** 将您的 {store} 安装切换到 iCloud3 存储库，并打开其 *预发布* 开关，以便您继续接收 Beta 版本。\n\n- 没有卸载或下载任何内容，并且Home Assistant不需要重新启动\n- iCloud3配置、设备和实体未更改\n- *iCloud3 Beta* 更新实体被 *iCloud3* 更新实体取代\n- 稍后关闭 iCloud3 *预发布* 开关，仅接收生产版本"
+            "description": "{message}\n\n## GitHub 上的 iCloud3_Beta 仓库（gcobb321/icloud3_v3）正在迁移，以符合 {store} 的安装要求\n\niCloud3 是从 *iCloud3 Beta* 仓库（gcobb321/icloud3_v3）安装的，该仓库已不再更新。\niCloud3 的测试版现在是 *iCloud3* 仓库（gcobb321/icloud3）中的预发布版本。\n\n### 按以下步骤设置 {store} 中的 iCloud3 测试版安装\n\n选择 **提交**，将 {store} 中的安装切换到 iCloud3 仓库并打开其 *预发布* 开关，\n以便继续收到测试版。\n\n- 不会卸载或下载任何内容，也无需重启 Home Assistant\n- iCloud3 的配置、设备和实体都不会改变\n- *iCloud3 Beta* 更新实体会被 *iCloud3* 更新实体取代\n- 之后可关闭 iCloud3 的 *预发布* 开关，只接收正式版本"
           }
         },
         "abort": {
@@ -1237,7 +1228,6 @@
     },
     "device_reassigned": {
       "title": "iCloud3：{device}，较新的Apple 检测到设备",
-      "description": "您的 Apple 设备 之一已推出更新版本。 iCloud3 配置已更新以使用较新的设备。\n\n更新了 **{device}** 的 Apple 设备：\n- {old_device} → {new_device}\n\n如果这是错误的，请将*设置应用程序*中的设备名称更改为其他名称。然后在 *iCloud3 配置 > 更新设备* 屏幕上选择 **{device}**。",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1252,7 +1242,6 @@
     },
     "apple_acct_reassigned": {
       "title": "iCloud3：{device}、Apple 账户已更新",
-      "description": "分配给 **{device}** 的 Apple 账户不在 iCloud3 配置中。它的Apple设备在另一个Apple 账户中被发现。 iCloud3 配置已更新为使用 Apple 账户。\n\n更新了 **{device}** 的 Apple 账户：\n- Apple 账户: {old_apple_acct} → {new_apple_acct}\n- Apple 设备…：{apple_device}\n\n如果错误，请在 **{device}** 的 *iCloud3 配置 > 更新设备* 屏幕上选择正确的 Apple 账户和 Apple 设备。",
       "fix_flow": {
         "step": {
           "confirm": {

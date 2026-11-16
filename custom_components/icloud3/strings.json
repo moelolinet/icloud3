@@ -770,7 +770,6 @@
   "issues": {
     "icloud3_notice": {
       "title": "iCloud3: {title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -782,7 +781,6 @@
     },
     "apple_acct_terms_of_use": {
       "title": "iCloud3: {account}, Apple 'Terms of Use' Approval",
-      "description": "Apple has updated its *iCloud Terms of Use*. Device location data will no longer be provided for the **{account}** Apple Account until the new terms are accepted. Tracking will be limited to the Location data provided by the Mobile App.\n\nSelect **Submit** to accept the *Terms of Use* (or **X** if not). iCloud3 will send 'I Agree' to Apple and restart.\n\nYou can also accept them on the *iCloud3 Configure > Apple Account Sign-in* screen, or by signing into icloud.com.",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -801,7 +799,6 @@
     },
     "apple_acct_locked": {
       "title": "iCloud3: **{account}**, Apple Acct is Locked",
-      "description": "Apple reports that the **{account}** Apple Account is locked. Device location data will no longer be provided for the **{account}** Apple Account until it is unlocked. Tracking will be limited to the Location data provided by the Mobile App.\n\nSign into *icloud.com* or go to iforgot.apple.com to unlock the account. Then restart iCloud3 (*iCloud3 Configure > Tools > Restart iCloud3*).\n\nThis entry is removed when iCloud3 starts and Apple reports the account is unlocked.",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -816,7 +813,6 @@
     },
     "device_replaced": {
       "title": "iCloud3: {device}, Newer Apple Device detected",
-      "description": "A newer version of one of your Apple Devices is available. The iCloud3 configuration needs to be updated to use the newer device.\n\nChange the Apple Device for **{device}**:\n- {old_device} → {new_device}\n\nThe current device is {old_device_status}.\n\nSelect Submit to confirm this selection and update the configuration for **{device}**.",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -835,7 +831,6 @@
     },
     "update_device": {
       "title": "iCloud3: {title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -971,7 +966,6 @@
     },
     "update_apple_acct": {
       "title": "iCloud3: {title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1179,7 +1173,6 @@
     },
     "restart_icloud3": {
       "title": "iCloud3: {title}",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1198,7 +1191,6 @@
     },
     "analytics_approval": {
       "title": "iCloud3: iCloud3 Analytics, Approval Requested",
-      "description": "Select *Enable* or *Disable* sending the iCloud3 Analytics data, then select **Submit**.",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1217,12 +1209,11 @@
     },
     "switch_repository": {
       "title": "iCloud3: Beta versions are now iCloud3 Prereleases",
-      "description": "{message}",
       "fix_flow": {
         "step": {
           "confirm": {
             "title": "iCloud3: Beta versions are now iCloud3 Prereleases",
-            "description": "## The GitHub iCloud3_Beta Repo (gcobb321/icloud3_v3) is being moved to support {store} installation requirements\n\niCloud3 was installed from the *iCloud3 Beta* repository (gcobb321/icloud3_v3). That repository is no being longer updated. The iCloud3 Beta versions are now pre-releases in the *iCloud3* repository (gcobb321/icloud3).\n\n### Do this to set up {store} iCloud3 Beta  Installation Settings\nSelect **Submit** to switch your {store} installation to the iCloud3 repository with its *Pre-release* switch on so you continue to receive the beta versions.\n\n- Nothing is uninstalled or downloaded and Home Assistant does not need to be restarted\n- The iCloud3 configuration, devices and entities are not changed\n- The *iCloud3 Beta* update entity is replaced by the *iCloud3* update entity\n- Turn the iCloud3 *Pre-release* switch off later to only receive the production versions"
+            "description": "{message}\n\n## The GitHub iCloud3_Beta Repo (gcobb321/icloud3_v3) is being moved to support {store} installation requirements\n\niCloud3 was installed from the *iCloud3 Beta* repository (gcobb321/icloud3_v3). That repository is no being longer updated. The iCloud3 Beta versions are now pre-releases in the *iCloud3* repository (gcobb321/icloud3).\n\n### Do this to set up {store} iCloud3 Beta  Installation Settings\nSelect **Submit** to switch your {store} installation to the iCloud3 repository with its *Pre-release* switch on so you continue to receive the beta versions.\n\n- Nothing is uninstalled or downloaded and Home Assistant does not need to be restarted\n- The iCloud3 configuration, devices and entities are not changed\n- The *iCloud3 Beta* update entity is replaced by the *iCloud3* update entity\n- Turn the iCloud3 *Pre-release* switch off later to only receive the production versions"
           }
         },
         "abort": {
@@ -1237,7 +1228,6 @@
     },
     "device_reassigned": {
       "title": "iCloud3: {device}, Newer Apple Device detected",
-      "description": "A newer version of one of your Apple Devices is available. The iCloud3 configuration was updated to use the newer device.\n\nUpdated Apple Device for **{device}**:\n- {old_device} → {new_device}\n\nIf this is wrong, change the name of the device in its *Settings App* to another name. Then select it on the *iCloud3 Configure > Update Device* screen for **{device}**.",
       "fix_flow": {
         "step": {
           "confirm": {
@@ -1252,7 +1242,6 @@
     },
     "apple_acct_reassigned": {
       "title": "iCloud3: {device}, Apple Account updated",
-      "description": "The Apple Account assigned to **{device}** is not in the iCloud3 configuration. Its Apple Device was found in another Apple Account. The iCloud3 configuration was updated to use that Apple Account.\n\nUpdated Apple Account for **{device}**:\n- Apple Account: {old_apple_acct} → {new_apple_acct}\n- Apple Device…: {apple_device}\n\nIf this is wrong, select the correct Apple Account and Apple Device on the *iCloud3 Configure > Update Device* screen for **{device}**.",
       "fix_flow": {
         "step": {
           "confirm": {

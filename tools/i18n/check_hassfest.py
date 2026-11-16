@@ -91,6 +91,14 @@ def main():
                                     f"{section}.step.{step}.{dd_key}"
                                 )
 
+        # issue 里 description / fix_flow / fixable 互斥（hassfest: Exclusive）
+        for issue, body in data.get("issues", {}).items():
+            present = [k for k in ("description", "fix_flow", "fixable") if k in body]
+            if len(present) > 1:
+                problems.append(
+                    f"{name}: issue {issue} has mutually exclusive keys {present}"
+                )
+
         # issues.<id>.fix_flow.step 里同样检查
         for issue, body in data.get("issues", {}).items():
             for step, step_body in (body.get("fix_flow", {}).get("step", {}) or {}).items():
