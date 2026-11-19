@@ -30,11 +30,17 @@ jobs:
         run: |
           TAG="${{ github.event.release.tag_name }}"
           VERSION="${TAG#v}"
-          BASE_VERSION=$(echo "$VERSION" | awk -F. '{print $1"."$2"."$3}')
+          # Strip a prerelease suffix before taking the major.minor.patch part,
+          # otherwise "3.8.0-beta.4" would be cut down to "3.8.0-beta".
+          BASE_VERSION="${VERSION%%-*}"
           NOTES_FILE="custom_components/icloud3/release_notes/release_notes_v${BASE_VERSION}.md"
           TITLE_DATE=$(date +'%-m/%-d/%Y')
 
-          gh release edit "$TAG" \
-            --title "iCloud3 ${TAG} (${TITLE_DATE})" \
-            --notes-file "$NOTES_FILE" \
-            --repo ${{ github.repository }}
+          if [ -f "$NOTES_FILE" ]; then
+            gh release edit "$TAG" \
+              --title "iCloud3 ${TAG} (${TITLE_DATE})" \
+              --notes-file "$NOTES_FILE" \
+              --repo ${{ github.repository }}
+          else
+            echo "No release notes file at $NOTES_FILE, keeping the existing notes."
+          fi
