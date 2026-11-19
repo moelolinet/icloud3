@@ -2,7 +2,7 @@
 
 [![HACS](https://img.shields.io/badge/HACS-%E8%87%AA%E5%AE%9A%E4%B9%89%E5%AE%89%E8%A3%85-steelblue.svg)](https://github.com/hacs/integration) ![Type](https://img.shields.io/badge/%E7%B1%BB%E5%9E%8B-%E8%87%AA%E5%AE%9A%E4%B9%89%E7%BB%84%E4%BB%B6-steelblue.svg)
 
-[![English](https://img.shields.io/badge/English-6e7781?style=for-the-badge&logo=readme&logoColor=white)](README.md)
+[English](README.md) | **简体中文**
 
 本仓库基于上游 iCloud3 v3.8.0-beta.4.1，增加了完整的中文界面。当 Home Assistant 使用中文
 （`zh-Hans` / `zh-CN` …）时，iCloud3 会自动显示中文；切回英文后立即恢复英文界面。
