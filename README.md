@@ -1,28 +1,19 @@
-#  <img width="32" height="32" src="https://brands.home-assistant.io/icloud3/icon.png"> iCloud3 Apple Device Tracker
+<div align="center">
 
-![][release-shield] ![](https://img.shields.io/badge/Released-November,_2026-mediumseagreen.svg) ![][release-downloads-shield] ![GitHub Stars][stars-shield]<br>
-![][dev-release-shield] ![](https://img.shields.io/badge/Released-November,_2026-mediumseagreen.svg)  ![][dev-release-downloads-shield] ![GitHub Stars][dev-stars-shield] <br>
+<img src="https://brands.home-assistant.io/icloud3/icon.png" width="150" alt="iCloud3 Apple Device Tracker">
 
-![HACS](https://img.shields.io/badge/HACS-Custom_Installation-steelblue.svg) ![Type](https://img.shields.io/badge/Type-Custom_Component-steelblue.svg)  
+# iCloud3 Apple Device Tracker
+
+Home Assistant device tracker for iPhones, iPads and Apple Watches via iCloud
 
 **English** | [简体中文](README.zh-CN.md)
 
-[![Buy Me a Coffee](https://img.shields.io/badge/Support_My_Work-Click_here_to_Buy_Me_a_Coffee-chocolate.svg?logo=buy-me-a-coffee&logoColor=white)](https://www.buymeacoffee.com/gcobb321)  ![](https://img.shields.io/badge/Lines_of_Code-52.1k-chocolate.svg)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![version](https://img.shields.io/badge/version-3.8.0--beta.4-41BDF5.svg)](https://github.com/moelolinet/icloud3)
 
+</div>
 
-[release-shield]: https://img.shields.io/github/v/release/gcobb321/icloud3.svg?label=General%20Release%20Version&color=mediumseagreen
-[release-downloads-shield]: https://img.shields.io/github/downloads/gcobb321/icloud3/latest/total.svg?label=Downloads&color=mediumseagreen
-[stars-shield]: https://img.shields.io/github/stars/gcobb321/icloud3?style=flat&amp;label=Stars&amp;color=mediumseagreen
-[stargazers]: https://github.com/gcobb321/icloud3/stargazers
-
-[total-downloads-shield]: https://img.shields.io/github/downloads/gcobb321/icloud3/total.svg?label=Total%20Downloads&color=mediumseagreen
-[dev-total-downloads-shield]: https://img.shields.io/github/downloads/gcobb321/icloud3_v3/total.svg?label=Total%20Downloads
-
-[dev-release-shield]: https://img.shields.io/github/v/release/gcobb321/icloud3_v3.svg?label=Beta/Prerelease%20Version&color=mediumseagreen
-[dev-release-downloads-shield]: https://img.shields.io/github/downloads/gcobb321/icloud3_v3/latest/total.svg?label=Downloads&color=mediumseagreen
-[dev-stars-shield]: https://img.shields.io/github/stars/gcobb321/icloud3_v3?style=flat&label=Stars&color=mediumseagreen
-[dev-stargazers]: https://github.com/gcobb321/icloud3_v3/stargazers
-
+---
 
 **中文界面支持（Chinese localisation）**
 
